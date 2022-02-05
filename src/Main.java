@@ -5,7 +5,6 @@ public class Main {
 
 
     public static void main(String[] args) throws IOException {
-        //TODO: Distinction between answers and acceptable words
         File guesses = new File("src/guesses.txt");
         File answers = new File("src/answers.txt");
 
