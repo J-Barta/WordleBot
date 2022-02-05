@@ -1,0 +1,168 @@
+import java.io.*;
+import java.nio.Buffer;
+import java.sql.Array;
+import java.util.*;
+
+public class Main {
+
+
+    public static void main(String[] args) throws IOException {
+        //TODO: Distinction between answers and acceptable words
+        File words = new File("src/wordlist.txt");
+
+        BufferedReader br = new BufferedReader(new FileReader(words));
+        BufferedReader inputReader = new BufferedReader(new InputStreamReader(System.in));
+
+        String st;
+
+        List<String> unsortedWords = new ArrayList<>();
+
+        while((st = br.readLine()) != null) {
+            unsortedWords.add(st);
+        }
+
+        System.out.println("Number of unordered words: " + unsortedWords.size());
+
+        List<String> sortedList = sortWordList(unsortedWords);
+        System.out.println("Number of ordered words: " + sortedList.size());
+
+        boolean guessed = false;
+        int guesses = 1;
+        while(guesses <= 6 && !guessed) {
+            System.out.println("Remaining valid words " + sortedList);
+            String guess = sortedList.get(0);
+            System.out.println("Guess #" + guesses + ". " + guess);
+            String info = inputReader.readLine();
+            sortedList = updateList(guess, info, sortedList);
+
+            guesses++;
+        }
+    }
+
+    /**
+     * 'n' = not in the word; 'y' = wrong location in the word; 'g' = correct letter in correct location
+     * @param info 5 characters that describe the previous guess
+     * @param words
+     * @return
+     */
+    private static List<String> updateList(String guess, String info, List<String> words) {
+        List<String> correctedWords = words;
+        for(int i = 0; i<info.length(); i++) {
+            Character c  = info.charAt(i);
+            if(c.equals('n')) {
+                correctedWords = removeLetters(List.of(guess.charAt(i)), correctedWords);
+            } else if(c.equals('y')) {
+                correctedWords = removeWordsWithoutLetters(List.of(guess.charAt(i)), correctedWords);
+                correctedWords = removeWordsWithLetterAtIndex(guess.charAt(i), i, correctedWords);
+            } else if(c.equals('g')) {
+                correctedWords = removeWordsWithoutLetterAtIndex(guess.charAt(i), i, correctedWords);
+
+            }
+        }
+
+        return correctedWords;
+    }
+
+    /**
+     *
+     * @param letters the letters that should be removed from the word
+     * @param words the list of words
+     * @return the fixed list
+     */
+    private static List<String> removeLetters(List<Character> letters, List<String> words) {
+        List<String> correctedList = new ArrayList<>();
+        for(String s : words) {
+            boolean hasLetter = false;
+            for(Character c : letters) {
+                if(s.indexOf(c) != -1) hasLetter = true;
+            }
+
+            if(!hasLetter) correctedList.add(s);
+        }
+
+        return correctedList;
+
+    }
+
+    /**
+     *
+     * @param letters the letters the MUST be in the returned words
+     * @param words the current list of words
+     * @return the only remaining words that have the specified letter
+     */
+    private static List<String> removeWordsWithoutLetters(List<Character> letters, List<String> words) {
+        List<String> correctedList = new ArrayList<>();
+
+        for(String s : words) {
+            boolean hasLetter = false;
+            for(Character c : letters) {
+                if(s.indexOf(c) != -1) hasLetter = true;
+            }
+
+            if(hasLetter) correctedList.add(s);
+        }
+
+        return correctedList;
+    }
+
+    private static List<String> removeWordsWithLetterAtIndex(Character c, Integer index, List<String> words) {
+
+        //TOOD: Support duplicate letters in a word
+        List<String> correctedList = new ArrayList<>();
+
+        for(String s : words) {
+            if(s.indexOf(c) != index) correctedList.add(s);
+        }
+
+        return correctedList;
+    }
+
+    private static List<String> removeWordsWithoutLetterAtIndex(Character c, Integer index, List<String> words) {
+
+        //TOOD: Support duplicate letters in a word
+        List<String> correctedList = new ArrayList<>();
+
+        for(String s : words) {
+            if(s.indexOf(c) == index) correctedList.add(s);
+        }
+
+        return correctedList;
+    }
+
+
+    private static List<String> sortWordList(List<String> unsortedList) {
+        List<WordData> wordsWithWeight = new ArrayList<>();
+        //Evaluate the score of each word
+        for(String s : unsortedList) {
+                wordsWithWeight.add(new WordData(s, evaluateWord(s, ValueMode.SingleLetter)));
+        }
+
+        //Sort the words by weight
+        Collections.sort(wordsWithWeight, Comparator.comparingDouble(WordData::getScore));
+        Collections.reverse(wordsWithWeight);
+
+        List<String> orderedWords = new ArrayList<>();
+        for(WordData d : wordsWithWeight) {
+//            System.out.println(d.getWord() + " - " + d.getScore());
+            orderedWords.add(d.getWord());
+        }
+        return orderedWords;
+    }
+
+    private static double evaluateWord(String word, ValueMode mode) {
+        double totalScore = 0;
+        List<Character> usedLetters = new ArrayList<>();
+
+        for(int i = 0; i<word.length(); i++) {
+            boolean letterUsed = mode == ValueMode.SingleLetter && usedLetters.contains(word.charAt(i));
+            totalScore += letterUsed ? 0 : Letters.letters.get((word.charAt(i)));
+            usedLetters.add(word.charAt(i));
+        }
+        return totalScore;
+    }
+
+    private enum ValueMode {
+        DoubleLetter, //We care about the double letters (should be used later in the guesses)
+        SingleLetter //We only care about the letters in the word (not how many of each letter there is)
+    }
+}
