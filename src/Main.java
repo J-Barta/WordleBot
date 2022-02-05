@@ -6,35 +6,71 @@ public class Main {
 
     public static void main(String[] args) throws IOException {
         //TODO: Distinction between answers and acceptable words
-        File words = new File("src/wordlist.txt");
+        File guesses = new File("src/guesses.txt");
+        File answers = new File("src/answers.txt");
 
-        BufferedReader br = new BufferedReader(new FileReader(words));
-        BufferedReader inputReader = new BufferedReader(new InputStreamReader(System.in));
+        BufferedReader guessesReader = new BufferedReader(new FileReader(guesses));
+        BufferedReader answersReader = new BufferedReader(new FileReader(answers));
 
         String st;
 
         List<String> unsortedWords = new ArrayList<>();
+        List<String> unsortedAnswers = new ArrayList<>();
 
-        while((st = br.readLine()) != null) {
+        while((st = guessesReader.readLine()) != null) {
             unsortedWords.add(st);
         }
 
-        System.out.println("Number of unordered words: " + unsortedWords.size());
+        while((st = answersReader.readLine()) != null) {
+            unsortedWords.add(st);
+            unsortedAnswers.add(st);
+        }
 
         List<String> sortedList = sortWordList(unsortedWords);
-        System.out.println("Number of ordered words: " + sortedList.size());
+        List<String> sortedAnswers = new ArrayList<>();
 
-        boolean guessed = false;
-        int guesses = 1;
-        while(guesses <= 6 && !guessed) {
-            System.out.println("Remaining valid words " + sortedList);
-            String guess = sortedList.get(0);
-            System.out.println("Guess #" + guesses + ". " + guess);
-            String info = inputReader.readLine();
+        BufferedReader inputReader = new BufferedReader(new InputStreamReader(System.in));
+
+        boolean useOnlyAnswers = false;
+        int timesGuessed = 1;
+        while(timesGuessed <= 6) {
+            String modeOutput = !useOnlyAnswers ? "all words" : "answers only";
+            System.out.println("Current mode: " + modeOutput);
+
+            System.out.println("Remaining valid words " + sortedList); //Output the set of remaining valid words
+
+            String guess = useOnlyAnswers ? sortedAnswers.get(0) :sortedList.get(0); //Get the guess based on whether or not we are using only words from the answer set
+            System.out.println("Guess #" + timesGuessed + ". " + guess);
+
+            String info = inputReader.readLine(); //Get the info about the last guess
+            useOnlyAnswers = switchToGuesses(info); //Evaluate the info to see if we should switch to using only answers
+
+            //If the word guess is correct, end the loop
+            if(info.toLowerCase(Locale.ROOT).equals("correct")) {
+                break;
+            }
+
+            //Update the sorted list of words
             sortedList = updateList(guess, info, sortedList);
 
-            guesses++;
+            //Update the sorted list of answers
+            sortedAnswers = new ArrayList<>();
+            for(String s : sortedList) {
+                if(unsortedAnswers.contains(s)) sortedAnswers.add(s);
+            }
+
+            timesGuessed++;
         }
+    }
+
+    private static boolean switchToGuesses(String info) {
+        double correctPercentage = 0;
+        for(int i = 0; i < info.length(); i++) {
+            if(info.charAt(i) == 'y') correctPercentage += 10;
+            if(info.charAt(i) == 'g') correctPercentage += 20;
+        }
+
+        return correctPercentage >= 40;
     }
 
     /**
@@ -140,7 +176,6 @@ public class Main {
                     break;
                 } else {
                     lowerBound = s.indexOf(c, lowerBound) + 1;
-                    System.out.println("Updated lower bound to " + lowerBound + " on word " + s);
                 }
             }
         }
