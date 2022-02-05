@@ -135,11 +135,12 @@ public class Main {
         for(String s : words) {
             int lowerBound = 0;
             while(s.indexOf(c, lowerBound) != -1) {
-                if (s.indexOf(c) == index) {
+                if (s.indexOf(c, lowerBound) == index) {
                     correctedList.add(s);
                     break;
                 } else {
                     lowerBound = s.indexOf(c, lowerBound) + 1;
+                    System.out.println("Updated lower bound to " + lowerBound + " on word " + s);
                 }
             }
         }
