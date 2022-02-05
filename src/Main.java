@@ -1,6 +1,4 @@
 import java.io.*;
-import java.nio.Buffer;
-import java.sql.Array;
 import java.util.*;
 
 public class Main {
@@ -50,9 +48,9 @@ public class Main {
         for(int i = 0; i<info.length(); i++) {
             Character c  = info.charAt(i);
             if(c.equals('n')) {
-                correctedWords = removeLetters(List.of(guess.charAt(i)), correctedWords);
+                correctedWords = removeLetter(guess.charAt(i), correctedWords);
             } else if(c.equals('y')) {
-                correctedWords = removeWordsWithoutLetters(List.of(guess.charAt(i)), correctedWords);
+                correctedWords = removeWordsWithoutLetter(guess.charAt(i), correctedWords);
                 correctedWords = removeWordsWithLetterAtIndex(guess.charAt(i), i, correctedWords);
             } else if(c.equals('g')) {
                 correctedWords = removeWordsWithoutLetterAtIndex(guess.charAt(i), i, correctedWords);
@@ -64,20 +62,15 @@ public class Main {
     }
 
     /**
-     *
-     * @param letters the letters that should be removed from the word
+     * This method should be used to remove letters that are definitely not in the word (i.e. gray letters)
+     * @param letter the letter that should be removed from the word
      * @param words the list of words
      * @return the fixed list
      */
-    private static List<String> removeLetters(List<Character> letters, List<String> words) {
+    private static List<String> removeLetter(Character letter, List<String> words) {
         List<String> correctedList = new ArrayList<>();
         for(String s : words) {
-            boolean hasLetter = false;
-            for(Character c : letters) {
-                if(s.indexOf(c) != -1) hasLetter = true;
-            }
-
-            if(!hasLetter) correctedList.add(s);
+            if(!(s.indexOf(letter) != -1)) correctedList.add(s);
         }
 
         return correctedList;
@@ -85,45 +78,70 @@ public class Main {
     }
 
     /**
-     *
-     * @param letters the letters the MUST be in the returned words
+     * Used to remove all words from the list if they don't have a specific letter (i.e. if the letter is yellow)
+     * @param letter the letters that MUST be in the returned words
      * @param words the current list of words
      * @return the only remaining words that have the specified letter
      */
-    private static List<String> removeWordsWithoutLetters(List<Character> letters, List<String> words) {
+    private static List<String> removeWordsWithoutLetter(Character letter, List<String> words) {
         List<String> correctedList = new ArrayList<>();
 
         for(String s : words) {
-            boolean hasLetter = false;
-            for(Character c : letters) {
-                if(s.indexOf(c) != -1) hasLetter = true;
-            }
-
-            if(hasLetter) correctedList.add(s);
+            if(s.indexOf(letter) != -1) correctedList.add(s);
         }
 
         return correctedList;
     }
 
+    /**
+     * Used to remove all words that have a letter at a specific index (used for yellow letters)
+     * @param c
+     * @param index
+     * @param words
+     * @return
+     */
     private static List<String> removeWordsWithLetterAtIndex(Character c, Integer index, List<String> words) {
 
         //TOOD: Support duplicate letters in a word
         List<String> correctedList = new ArrayList<>();
 
         for(String s : words) {
-            if(s.indexOf(c) != index) correctedList.add(s);
+            int lowerBound = 0;
+            boolean shouldRemove = false;
+            while(s.indexOf(c, lowerBound) != -1) {
+                if(s.indexOf(c, lowerBound) == index) {
+                    shouldRemove = true;
+                }
+
+                lowerBound = s.indexOf(c, lowerBound) + 1;
+            }
+            if(!shouldRemove) correctedList.add(s);
         }
 
         return correctedList;
     }
 
+    /**
+     *
+     * @param c
+     * @param index
+     * @param words
+     * @return
+     */
     private static List<String> removeWordsWithoutLetterAtIndex(Character c, Integer index, List<String> words) {
-
         //TOOD: Support duplicate letters in a word
         List<String> correctedList = new ArrayList<>();
 
         for(String s : words) {
-            if(s.indexOf(c) == index) correctedList.add(s);
+            int lowerBound = 0;
+            while(s.indexOf(c, lowerBound) != -1) {
+                if (s.indexOf(c) == index) {
+                    correctedList.add(s);
+                    break;
+                } else {
+                    lowerBound = s.indexOf(c, lowerBound) + 1;
+                }
+            }
         }
 
         return correctedList;
@@ -134,7 +152,7 @@ public class Main {
         List<WordData> wordsWithWeight = new ArrayList<>();
         //Evaluate the score of each word
         for(String s : unsortedList) {
-                wordsWithWeight.add(new WordData(s, evaluateWord(s, ValueMode.SingleLetter)));
+            wordsWithWeight.add(new WordData(s, evaluateWord(s, ValueMode.SingleLetter)));
         }
 
         //Sort the words by weight
