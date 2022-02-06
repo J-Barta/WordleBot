@@ -127,11 +127,16 @@ public class Utils {
     }
 
 
-    public static List<WordData> sortWordList(List<String> unsortedList) {
+    public static List<WordData> sortWordList(List<String> unsortedList, List<String> fullList, int id) {
         List<WordData> wordsWithWeight = new ArrayList<>();
         //Evaluate the score of each word
+        System.out.print("Starting thread...");
+
         for(String s : unsortedList) {
-            wordsWithWeight.add(new WordData(s, evaluateWord(s, unsortedList)));
+            wordsWithWeight.add(new WordData(s, evaluateWord(s, fullList)));
+
+            System.out.print('\r');
+            System.out.print("Thread #" + id + " is " + ((unsortedList.indexOf(s) / (double) unsortedList.size()) * 100) + "% of the way done.");
         }
 
         //Sort the words by weight
@@ -150,9 +155,14 @@ public class Utils {
         Character[] info = {'n', 'n', 'n', 'n', 'n'};
 
         double totalValue = 0;
-        int iterations = 0;
+        int countedIterations = 0;
         while (true) {
-            iterations++;
+            String correctedInfo = handleImpossibilities(word, charListToString(info));
+            double thisValue = updateList(word, correctedInfo, unsortedList).size();
+//            if(charListToString(info).equals("nnnnn")) System.out.println("Scored word " + word + " with info " + correctedInfo + " as " + thisValue + " with word list size " + unsortedList.size());
+            totalValue += thisValue;
+            if(thisValue > 0) countedIterations++;
+
             info[0] = nextInfoChar(info[0]);
 
             if(info[0] == 'n') {
@@ -174,14 +184,56 @@ public class Utils {
                     }
                 }
             }
-
-            double thisValue = updateList(word, charListToString(info), unsortedList).size();
-            System.out.println("Evaluated word " + word + " as " + thisValue + " with info " + charListToString(info));
-            totalValue += thisValue;
         }
 
-//        System.out.println("Scored word " + word + " as " + totalValue / iterations + " (with " + iterations + " iterations");
-        return totalValue / (double) iterations;
+//        System.out.println("Scored word " + word + " as " + totalValue / countedIterations + " (with " + countedIterations + " counted iterations");
+        return totalValue / (double) countedIterations;
+    }
+
+    /**
+     * Corrects impossibilities in a word when evaluating it's score (i.e. a word that MUST have one letter and MUST also not have it)
+     * @param word the original word
+     * @param info the original info for the word
+     * @return A modified version of the info that will be safe to use
+     */
+    private static String handleImpossibilities(String word, String info) {
+        List<Character> infoList = stringToCharList(info);
+
+        for(Character c : Letters.letters.keySet()) {
+            int lowerBound = 0;
+            List<Integer> countedIndices = new ArrayList<>();
+            while(word.indexOf(c, lowerBound) != -1) {
+                countedIndices.add(word.indexOf(c, lowerBound));
+                lowerBound = word.indexOf(c, lowerBound) + 1;
+            }
+
+            //If the letter is counted more than once, check for impossibilities
+            if(countedIndices.size() > 1) {
+                //Impossible combinations: ny, ng
+                //Acceptable combinations: gg, yy, yg, nn
+
+                //The list of info that can potentially have
+                List<Character> potentialErrors = new ArrayList<>();
+                for(Integer i : countedIndices) {
+                    potentialErrors.add(infoList.get(i));
+                }
+
+                for(Character infoChar : potentialErrors) {
+                    //If an n exists here, then all instances of this letter need to be set to n
+                    if(infoChar == 'n') {
+                        //Set every index of potential errors to n in the infoList
+                        for (Integer i : countedIndices) {
+                            infoList.set(i, 'n');
+                        }
+
+//                        System.out.println("Located impossibility in word " + word + " with info " + info + ". Corrected info to " + charListToString(infoList));
+                        break;
+                    }
+                }
+            }
+        }
+
+        return charListToString(infoList);
     }
 
     public static String charListToString(List<Character> chars) {
@@ -198,11 +250,31 @@ public class Utils {
         return charListToString(List.of(chars));
     }
 
+    public static List<Character> stringToCharList(String string) {
+        List<Character> list = new ArrayList<>();
+
+        for(int i = 0; i < string.length(); i++) {
+            list.add(string.charAt(i));
+        }
+
+        return list;
+    }
+
     public static Character nextInfoChar(Character c) {
         if(c == 'n') return 'y';
         else if(c == 'y') return 'g';
         else if(c == 'g') return 'n';
 
         return null;
+    }
+}
+
+class InfoData {
+    Character c;
+    int index;
+
+    public InfoData(Character c, int index) {
+        this.c = c;
+        this.index = index;
     }
 }

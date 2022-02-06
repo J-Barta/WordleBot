@@ -26,36 +26,33 @@ public class Main {
             unsortedAnswers.add(st);
         }
 
-        System.out.println("List after testing trawl " + Utils.updateList("trawl", "ggyng", unsortedAnswers));
-        Thread.sleep(5000);
-//        List<String> sortedList = sortWordList(unsortedWords);
-        List<String> sortedList = sortWordList(unsortedAnswers);
+        while(true) {
+            mainGuessingLoop(unsortedWords, unsortedAnswers);
 
-        List<String> sortedAnswers = new ArrayList<>();
+        }
+    }
 
-        BufferedReader inputReader = new BufferedReader(new InputStreamReader(System.in));
+    private static void mainGuessingLoop(List<String> sortedList, List<String> unsortedAnswers) throws IOException, InterruptedException {
+        BufferedReader inputReader = new BufferedReader(new InputStreamReader(System.in)); //Create a buffered reader to read the inputs
+        boolean useOnlyAnswers;
 
-        boolean useOnlyAnswers = false;
+        System.out.println("First guess, as always, is tares");
+        String info = inputReader.readLine(); //Get the info about the last guess
+
+        useOnlyAnswers = Utils.switchToGuesses(info); //Evaluate the info to see if we should switch to using only answers
+
+        //If the word guess is correct, end the loop
+        if(info.toLowerCase(Locale.ROOT).equals("correct")) return;
+
+        //Update the sorted list of words
+        sortedList = Utils.updateList("tares", info, sortedList);
+
+
+        List<String> sortedAnswers;
+
         int timesGuessed = 1;
-        while(timesGuessed <= 6) {
-            String modeOutput = !useOnlyAnswers ? "all words" : "answers only";
-            System.out.println("Current mode: " + modeOutput);
-
-            System.out.println("Remaining valid words " + sortedList); //Output the set of remaining valid words
-
-            String guess = useOnlyAnswers ? sortedAnswers.get(0) :sortedList.get(0); //Get the guess based on whether or not we are using only words from the answer set
-            System.out.println("Guess #" + timesGuessed + ". " + guess);
-
-            String info = inputReader.readLine(); //Get the info about the last guess
-            useOnlyAnswers = Utils.switchToGuesses(info); //Evaluate the info to see if we should switch to using only answers
-
-            //If the word guess is correct, end the loop
-            if(info.toLowerCase(Locale.ROOT).equals("correct")) {
-                break;
-            }
-
-            //Update the sorted list of words
-            sortedList = Utils.updateList(guess, info, sortedList);
+        //We only get 6 guesses and we've already guessed once
+        while(timesGuessed < 6) {
 
             //Re-evaluate the word list to find the word that will give the fewest answers on average
             sortedList = sortWordList(sortedList);
@@ -66,6 +63,25 @@ public class Main {
                 if(unsortedAnswers.contains(s)) sortedAnswers.add(s);
             }
 
+            String modeOutput = !useOnlyAnswers ? "all words" : "answers only";
+            System.out.println("Current mode: " + modeOutput);
+
+            System.out.println("Remaining valid words " + sortedList); //Output the set of remaining valid words
+
+            String guess = useOnlyAnswers ? sortedAnswers.get(0) :sortedList.get(0); //Get the guess based on whether or not we are using only words from the answer set
+            System.out.println("Guess #" + (timesGuessed+1) + ". " + guess);
+
+            info = inputReader.readLine(); //Get the info about the last guess
+            useOnlyAnswers = Utils.switchToGuesses(info); //Evaluate the info to see if we should switch to using only answers
+
+            //If the word guess is correct, end the loop
+            if(info.toLowerCase(Locale.ROOT).equals("correct")) {
+                break;
+            }
+
+            //Update the sorted list of words
+            sortedList = Utils.updateList(guess, info, sortedList);
+
             timesGuessed++;
         }
     }
@@ -73,46 +89,52 @@ public class Main {
     private static List<String> sortWordList(List<String> unsortedWords) throws InterruptedException {
         int wordsPerJump = unsortedWords.size() / threadCount;
 
-        List<Multithread> threads = new ArrayList<>();
-
-        for(int i = 0; i< threadCount; i++) {
-            //If this is the last thread, go to the end of the list
-            if(i + 1 == threadCount) {
-                threads.add(new Multithread(unsortedWords.subList(i*wordsPerJump, unsortedWords.size())));
-                System.out.println("Started thread " + i + " with range " + i*wordsPerJump + " to " + unsortedWords.size());
-            } else {
-                threads.add(new Multithread(unsortedWords.subList(i*wordsPerJump, (i+1)*wordsPerJump-1)));
-                System.out.println("Started thread " + i + " with range " + i*wordsPerJump + " to " + ((i+1)*wordsPerJump-1));
-            }
-            threads.get(i).start();
-        }
-
-        boolean allFinished = false;
-        while(!allFinished) {
-            allFinished = true;
-            for(Multithread t : threads) {
-                if(!t.isFinished()) allFinished = false;
-            }
-
-//            System.out.println("Waiting for all threads to finish...");
-
-            Thread.sleep(50);
-        }
-
         List<WordData> allWordData = new ArrayList<>();
-
-        for(Multithread t : threads) {
-            allWordData.addAll(t.getSortedList());
-        }
-
-        Collections.sort(allWordData, Comparator.comparingDouble(WordData::getScore));
-
-        for(WordData d : allWordData) {
-            System.out.println("Word: " + d.getWord() + " - score: " + d.getScore());
-        }
-
         List<String> sortedList = new ArrayList<>();
-        for(WordData d : allWordData) {
+
+        //Decide whether to multithread or not
+        if(unsortedWords.size() > 100) {
+
+            List<Multithread> threads = new ArrayList<>();
+
+            for (int i = 0; i < threadCount; i++) {
+                //If this is the last thread, go to the end of the list
+                if (i + 1 == threadCount) {
+                    threads.add(new Multithread(unsortedWords.subList(i * wordsPerJump, unsortedWords.size()), unsortedWords, i));
+                    System.out.println("Started thread " + i + " with range " + i * wordsPerJump + " to " + unsortedWords.size());
+                } else {
+                    threads.add(new Multithread(unsortedWords.subList(i * wordsPerJump, (i + 1) * wordsPerJump - 1), unsortedWords, i));
+                    System.out.println("Started thread " + i + " with range " + i * wordsPerJump + " to " + ((i + 1) * wordsPerJump - 1));
+                }
+                threads.get(i).start();
+            }
+
+            boolean allFinished = false;
+            while (!allFinished) {
+                allFinished = true;
+                for (Multithread t : threads) {
+                    if (!t.isFinished()) allFinished = false;
+                }
+
+                //            System.out.println("Waiting for all threads to finish...");
+
+                Thread.sleep(50);
+            }
+
+            for (Multithread t : threads) {
+                allWordData.addAll(t.getSortedList());
+            }
+
+            Collections.sort(allWordData, Comparator.comparingDouble(WordData::getScore));
+
+            for (WordData d : allWordData) {
+                System.out.println("#" + allWordData.indexOf(d) + " Word: " + d.getWord() + " - score: " + d.getScore());
+            }
+        } else {
+            allWordData = Utils.sortWordList(unsortedWords, unsortedWords, 0);
+        }
+
+        for (WordData d : allWordData) {
             sortedList.add(d.getWord());
         }
 
