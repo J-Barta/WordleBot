@@ -175,6 +175,10 @@ public class Main {
             totalSuccesses += d.isSuccess() ? 1 : 0;
         }
 
+        for(GameData d : failedGames) {
+            System.out.println("failed game: " + d.getAnswer());
+        }
+
         System.out.println("Total games: " + games.size());
         System.out.println("Total Successes: " + totalSuccesses);
         System.out.println("Total Failures: " + (games.size() - totalSuccesses));
