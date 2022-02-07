@@ -1,8 +1,12 @@
 import java.io.*;
+import java.text.DecimalFormat;
 import java.util.*;
 
 public class Main {
     static int threadCount = 12; //The number of threads
+
+    static boolean actualGame = false;
+    static String startingGuess = "tares";
 
 
     public static void main(String[] args) throws IOException, InterruptedException {
@@ -26,27 +30,31 @@ public class Main {
             unsortedAnswers.add(st);
         }
 
-        while(true) {
-            mainGuessingLoop(unsortedWords, unsortedAnswers);
-
+        if(actualGame) {
+            //Normal game loop
+            while (true) {
+                mainGuessingLoop(unsortedWords, unsortedAnswers);
+            }
+        } else {
+            //Simulation
+            simulateGames(unsortedWords, unsortedAnswers);
         }
     }
 
-    private static void mainGuessingLoop(List<String> sortedList, List<String> unsortedAnswers) throws IOException, InterruptedException {
+    private static void mainGuessingLoop(List<String> wordList, List<String> unsortedAnswers) throws IOException, InterruptedException {
         BufferedReader inputReader = new BufferedReader(new InputStreamReader(System.in)); //Create a buffered reader to read the inputs
         boolean useOnlyAnswers;
 
-        System.out.println("First guess, as always, is tares");
+        System.out.println("First guess, as always, is " + startingGuess);
         String info = inputReader.readLine(); //Get the info about the last guess
 
-        useOnlyAnswers = Utils.switchToGuesses(info); //Evaluate the info to see if we should switch to using only answers
+        useOnlyAnswers = Utils.switchToAnswers(info); //Evaluate the info to see if we should switch to using only answers
 
         //If the word guess is correct, end the loop
         if(info.toLowerCase(Locale.ROOT).equals("correct")) return;
 
         //Update the sorted list of words
-        sortedList = Utils.updateList("tares", info, sortedList);
-
+        wordList = ListModifiers.updateList(startingGuess, info, wordList);
 
         List<String> sortedAnswers;
 
@@ -55,35 +63,155 @@ public class Main {
         while(timesGuessed < 6) {
 
             //Re-evaluate the word list to find the word that will give the fewest answers on average
-            sortedList = sortWordList(sortedList);
+            wordList = sortWordList(wordList);
 
             //Update the sorted list of answers
             sortedAnswers = new ArrayList<>();
-            for(String s : sortedList) {
+            for(String s : wordList) {
                 if(unsortedAnswers.contains(s)) sortedAnswers.add(s);
             }
 
             String modeOutput = !useOnlyAnswers ? "all words" : "answers only";
             System.out.println("Current mode: " + modeOutput);
 
-            System.out.println("Remaining valid words " + sortedList); //Output the set of remaining valid words
+            System.out.println("Remaining valid words " + wordList); //Output the set of remaining valid words
 
-            String guess = useOnlyAnswers ? sortedAnswers.get(0) :sortedList.get(0); //Get the guess based on whether or not we are using only words from the answer set
+            String guess = useOnlyAnswers ? sortedAnswers.get(0) :wordList.get(0); //Get the guess based on whether or not we are using only words from the answer set
             System.out.println("Guess #" + (timesGuessed+1) + ". " + guess);
 
             info = inputReader.readLine(); //Get the info about the last guess
-            useOnlyAnswers = Utils.switchToGuesses(info); //Evaluate the info to see if we should switch to using only answers
+            useOnlyAnswers = Utils.switchToAnswers(info); //Evaluate the info to see if we should switch to using only answers
 
             //If the word guess is correct, end the loop
-            if(info.toLowerCase(Locale.ROOT).equals("correct")) {
+            if(info.toLowerCase(Locale.ROOT).equals("correct") || info.toLowerCase(Locale.ROOT).equals("ggggg")) {
                 break;
             }
 
-            //Update the sorted list of words
-            sortedList = Utils.updateList(guess, info, sortedList);
+            //Remove the available words based on the guess and the info
+            wordList = ListModifiers.updateList(guess, info, wordList);
 
             timesGuessed++;
         }
+    }
+
+    private static void simulateGames(List<String> originalList, List<String> unsortedAnswers) throws InterruptedException {
+        List<GameData> games = new ArrayList<>();
+        List<GameData> failedGames = new ArrayList<>();
+        System.out.println("Starting simulations");
+
+        System.out.print("Percent complete: 00.0%");
+
+        for(String w : unsortedAnswers) {
+            List<String> wordList = List.copyOf(originalList);
+
+            List<String> sortedAnswers;
+            int guesses = 1;
+            boolean success = false;
+            boolean useOnlyAnswers = false;
+
+            //Begin with one single starting guess
+            String guess = startingGuess;
+            String info = getInfoFromWord(guess, w);
+
+            //Update the sorted list of words
+            wordList = ListModifiers.updateList(startingGuess, info, wordList);
+
+            while(guesses <= 6) {
+
+                //Re-evaluate the word list to find the word that will give the fewest answers on average
+                wordList = sortWordList(wordList);
+
+                //Update the sorted list of answers
+                sortedAnswers = new ArrayList<>();
+                for(String s : wordList) {
+                    if(unsortedAnswers.contains(s)) sortedAnswers.add(s);
+                }
+
+                //Generate and apply the new guess for this attempt
+                if(sortedAnswers.size() > 0) guess = useOnlyAnswers ? sortedAnswers.get(0) :wordList.get(0); //Get the guess based on whether or not we are using only words from the answer set
+                else  {
+                    break;
+                }
+
+                info = getInfoFromWord(guess, w); //Get the info about the last guess
+                useOnlyAnswers = Utils.switchToAnswers(info); //Evaluate the info to see if we should switch to using only answers
+
+                if(info.toLowerCase(Locale.ROOT).equals("ggggg")) {
+                    success = true;
+                    break;
+                }
+
+                //Remove the available words based on the guess and the info
+                wordList = ListModifiers.updateList(guess, info, wordList);
+
+                guesses++;
+            }
+
+            GameData thisGame = new GameData(success, guesses, w);
+
+            if(!success) {
+//                System.out.println("Failed game {Answer: " + w + ", success: " + success + ", guesses: " + guesses + "}");
+                failedGames.add(thisGame);
+            }
+
+            games.add(thisGame);
+
+            System.out.print("\b\b\b\b\b");
+            double fractionComplete = ((double) unsortedAnswers.indexOf(w) + 1) / unsortedAnswers.size();
+            DecimalFormat df = new DecimalFormat("##.#");
+            String percentage = df.format(fractionComplete * 100) + "%";
+            if(percentage.indexOf('.') == -1) percentage = percentage.substring(0, percentage.indexOf('%')-1) + ".0%";
+            while(percentage.length() < 5) {
+                percentage = "0" + percentage;
+            }
+            System.out.print(percentage);
+        }
+
+        double totalGuesses = 0;
+        double totalSuccesses = 0;
+
+        for(GameData d : games) {
+            totalGuesses += d.isSuccess() ? d.getGuesses() : 0;
+            totalSuccesses += d.isSuccess() ? 1 : 0;
+        }
+
+        System.out.println("Total games: " + games.size());
+        System.out.println("Total Successes: " + totalSuccesses);
+        System.out.println("Total Failures: " + (games.size() - totalSuccesses));
+        System.out.println("Success Rate: " + (totalSuccesses / games.size()));
+        System.out.println("Average guesses: " + (totalGuesses / totalSuccesses));
+        GameData bestGame = games.stream().min(Comparator.comparingDouble(GameData::getGuesses)).get();
+        System.out.println("Best guess: " + bestGame.getAnswer() + " with " + bestGame.getGuesses() + " guesses");
+    }
+
+    private static String getInfoFromWord(String guess, String answer) {
+        List<Character> answerList = Utils.stringToCharList(answer);
+
+        List<Character> infoList = new ArrayList<>();
+
+        for(int i = 0; i<guess.length(); i++) {
+            Character c = guess.charAt(i);
+            if(!answerList.contains(c)) infoList.add('n');
+            else {
+                if(rightIndex(c,i, answer)) {
+                    infoList.add('g');
+                } else {
+                    infoList.add('y');
+                }
+            }
+        }
+
+        return Utils.charListToString(infoList);
+    }
+
+    private static boolean rightIndex(Character c, Integer index, String answer) {
+        int lowerBound = 0;
+        while(answer.indexOf(c, lowerBound) != -1) {
+            if(answer.indexOf(c, lowerBound) == index) return true;
+            lowerBound = answer.indexOf(c, lowerBound) + 1;
+        }
+
+        return false;
     }
 
     private static List<String> sortWordList(List<String> unsortedWords) throws InterruptedException {
@@ -101,10 +229,10 @@ public class Main {
                 //If this is the last thread, go to the end of the list
                 if (i + 1 == threadCount) {
                     threads.add(new Multithread(unsortedWords.subList(i * wordsPerJump, unsortedWords.size()), unsortedWords, i));
-                    System.out.println("Started thread " + i + " with range " + i * wordsPerJump + " to " + unsortedWords.size());
+//                    System.out.println("Started thread " + i + " with range " + i * wordsPerJump + " to " + unsortedWords.size());
                 } else {
                     threads.add(new Multithread(unsortedWords.subList(i * wordsPerJump, (i + 1) * wordsPerJump - 1), unsortedWords, i));
-                    System.out.println("Started thread " + i + " with range " + i * wordsPerJump + " to " + ((i + 1) * wordsPerJump - 1));
+//                    System.out.println("Started thread " + i + " with range " + i * wordsPerJump + " to " + ((i + 1) * wordsPerJump - 1));
                 }
                 threads.get(i).start();
             }
@@ -127,11 +255,11 @@ public class Main {
 
             Collections.sort(allWordData, Comparator.comparingDouble(WordData::getScore));
 
-            for (WordData d : allWordData) {
-                System.out.println("#" + allWordData.indexOf(d) + " Word: " + d.getWord() + " - score: " + d.getScore());
-            }
+//            for (WordData d : allWordData) {
+//                System.out.println("#" + allWordData.indexOf(d) + " Word: " + d.getWord() + " - score: " + d.getScore());
+//            }
         } else {
-            allWordData = Utils.sortWordList(unsortedWords, unsortedWords, 0);
+            allWordData = WordScoring.sortWordList(unsortedWords, unsortedWords, 0);
         }
 
         for (WordData d : allWordData) {

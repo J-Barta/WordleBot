@@ -1,4 +1,3 @@
-import java.sql.Array;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,8 +18,7 @@ public class Multithread extends Thread{
     @Override
     public void run() {
         try {
-            wordsWithData = Utils.sortWordList(toSort, fullList, id);
-            System.out.println("Indicating the thread is finished");
+            wordsWithData = WordScoring.sortWordList(toSort, fullList, id);
             finished = true;
         }
         catch (Exception e) {
