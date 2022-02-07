@@ -1,14 +1,17 @@
+import utils.WordData;
+import utils.WordScoring;
+
 import java.util.ArrayList;
 import java.util.List;
 
-public class Multithread extends Thread{
+public class ScoringThread extends Thread{
      List<String> toSort;
     List<String> fullList;
     int id;
 
     List<WordData> wordsWithData = new ArrayList<>();
      private boolean finished = false;
-    public Multithread(List<String> toSort, List<String> fullList, int id) {
+    public ScoringThread(List<String> toSort, List<String> fullList, int id) {
         super();
         this.toSort = toSort;
         this.fullList = fullList;

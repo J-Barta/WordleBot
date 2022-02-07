@@ -1,3 +1,8 @@
+import utils.ListModifiers;
+import utils.Utils;
+import utils.WordData;
+import utils.WordScoring;
+
 import java.io.*;
 import java.text.DecimalFormat;
 import java.util.*;
@@ -10,8 +15,8 @@ public class Main {
 
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        File guesses = new File("src/guesses.txt");
-        File answers = new File("src/answers.txt");
+        File guesses = new File("src/words/guesses.txt");
+        File answers = new File("src/words/answers.txt");
 
         BufferedReader guessesReader = new BufferedReader(new FileReader(guesses));
         BufferedReader answersReader = new BufferedReader(new FileReader(answers));
@@ -75,6 +80,7 @@ public class Main {
             System.out.println("Current mode: " + modeOutput);
 
             System.out.println("Remaining valid words " + wordList); //Output the set of remaining valid words
+            System.out.println("Size of valid word list: " + wordList.size());
 
             String guess = useOnlyAnswers ? sortedAnswers.get(0) :wordList.get(0); //Get the guess based on whether or not we are using only words from the answer set
             System.out.println("Guess #" + (timesGuessed+1) + ". " + guess);
@@ -113,10 +119,13 @@ public class Main {
             String guess = startingGuess;
             String info = getInfoFromWord(guess, w);
 
+            if(info.equals("ggggg")) success = true;
+
             //Update the sorted list of words
             wordList = ListModifiers.updateList(startingGuess, info, wordList);
 
-            while(guesses <= 6) {
+            while(guesses <= 6 && !success) {
+                guesses++;
 
                 //Re-evaluate the word list to find the word that will give the fewest answers on average
                 wordList = sortWordList(wordList);
@@ -144,18 +153,17 @@ public class Main {
                 //Remove the available words based on the guess and the info
                 wordList = ListModifiers.updateList(guess, info, wordList);
 
-                guesses++;
             }
 
             GameData thisGame = new GameData(success, guesses, w);
 
             if(!success) {
-//                System.out.println("Failed game {Answer: " + w + ", success: " + success + ", guesses: " + guesses + "}");
                 failedGames.add(thisGame);
             }
 
             games.add(thisGame);
 
+            //Output how far through we are with nice pretty formatting
             System.out.print("\b\b\b\b\b");
             double fractionComplete = ((double) unsortedAnswers.indexOf(w) + 1) / unsortedAnswers.size();
             DecimalFormat df = new DecimalFormat("##.#");
@@ -225,26 +233,28 @@ public class Main {
         List<String> sortedList = new ArrayList<>();
 
         //Decide whether to multithread or not
-        if(unsortedWords.size() > 100) {
+        if(unsortedWords.size() > 50) {
 
-            List<Multithread> threads = new ArrayList<>();
+            List<ScoringThread> threads = new ArrayList<>();
 
             for (int i = 0; i < threadCount; i++) {
+                List<String> subList;
                 //If this is the last thread, go to the end of the list
                 if (i + 1 == threadCount) {
-                    threads.add(new Multithread(unsortedWords.subList(i * wordsPerJump, unsortedWords.size()), unsortedWords, i));
-//                    System.out.println("Started thread " + i + " with range " + i * wordsPerJump + " to " + unsortedWords.size());
+                    subList = unsortedWords.subList(i * wordsPerJump, unsortedWords.size());
                 } else {
-                    threads.add(new Multithread(unsortedWords.subList(i * wordsPerJump, (i + 1) * wordsPerJump - 1), unsortedWords, i));
-//                    System.out.println("Started thread " + i + " with range " + i * wordsPerJump + " to " + ((i + 1) * wordsPerJump - 1));
+                    subList = unsortedWords.subList(i * wordsPerJump, (i + 1) * wordsPerJump);
                 }
+
+                threads.add(new ScoringThread(subList, unsortedWords, i));
+
                 threads.get(i).start();
             }
 
             boolean allFinished = false;
             while (!allFinished) {
                 allFinished = true;
-                for (Multithread t : threads) {
+                for (ScoringThread t : threads) {
                     if (!t.isFinished()) allFinished = false;
                 }
 
@@ -253,15 +263,11 @@ public class Main {
                 Thread.sleep(50);
             }
 
-            for (Multithread t : threads) {
+            for (ScoringThread t : threads) {
                 allWordData.addAll(t.getSortedList());
             }
 
             Collections.sort(allWordData, Comparator.comparingDouble(WordData::getScore));
-
-//            for (WordData d : allWordData) {
-//                System.out.println("#" + allWordData.indexOf(d) + " Word: " + d.getWord() + " - score: " + d.getScore());
-//            }
         } else {
             allWordData = WordScoring.sortWordList(unsortedWords, unsortedWords, 0);
         }

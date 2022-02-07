@@ -1,3 +1,5 @@
+package utils;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -8,7 +10,7 @@ public class ListModifiers {
      * @param words
      * @return
      */
-    public static List<String> updateList(String guess, String info, List<String> words) {
+    public static List<String> updateList(String guess, String info, List<String> words, boolean normalGuess) {
         List<String> correctedWords = words;
         for(int i = 0; i<info.length(); i++) {
             Character c  = info.charAt(i);
@@ -22,8 +24,11 @@ public class ListModifiers {
 
             }
         }
-
         return correctedWords;
+    }
+
+    public static List<String> updateList(String guess, String info, List<String> words) {
+        return updateList(guess, info, words, true);
     }
 
     /**

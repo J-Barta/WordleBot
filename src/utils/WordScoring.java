@@ -1,3 +1,5 @@
+package utils;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -35,7 +37,7 @@ public class WordScoring {
         int countedIterations = 0;
         while (true) {
             String correctedInfo = handleImpossibilities(word, Utils.charListToString(info));
-            double thisValue = ListModifiers.updateList(word, correctedInfo, unsortedList).size();
+            double thisValue = ListModifiers.updateList(word, correctedInfo, unsortedList, false).size();
 //            if(charListToString(info).equals("nnnnn")) System.out.println("Scored word " + word + " with info " + correctedInfo + " as " + thisValue + " with word list size " + unsortedList.size());
             totalValue += thisValue;
             if(thisValue > 0) countedIterations++;
