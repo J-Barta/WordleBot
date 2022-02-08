@@ -1,3 +1,5 @@
+package utils;
+
 public class GameData {
     private boolean success;
     private int guesses;

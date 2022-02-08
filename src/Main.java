@@ -1,16 +1,12 @@
-import utils.ListModifiers;
-import utils.Utils;
-import utils.WordData;
-import utils.WordScoring;
+import utils.*;
 
 import java.io.*;
-import java.text.DecimalFormat;
 import java.util.*;
 
 public class Main {
     static int threadCount = 12; //The number of threads
 
-    static boolean actualGame = false;
+    static boolean actualGame = true;
     static String startingGuess = "tares";
 
 
@@ -46,20 +42,25 @@ public class Main {
         }
     }
 
-    private static void mainGuessingLoop(List<String> wordList, List<String> unsortedAnswers) throws IOException, InterruptedException {
+    private static void mainGuessingLoop(List<String> originalList, List<String> unsortedAnswers) throws IOException, InterruptedException {
+        List<String> wordList = List.copyOf(originalList);
         BufferedReader inputReader = new BufferedReader(new InputStreamReader(System.in)); //Create a buffered reader to read the inputs
-        boolean useOnlyAnswers;
 
-        System.out.println("First guess, as always, is " + startingGuess);
+        String guess = startingGuess;
+        String lastNormalGuess = startingGuess; //Store the last normal guess (not the last special guess) for more intelligent guessing behavior
+
+        System.out.println("First guess, as always, is " + guess);
         String info = inputReader.readLine(); //Get the info about the last guess
+        String lastNormalInfo = info;
 
-        useOnlyAnswers = Utils.switchToAnswers(info); //Evaluate the info to see if we should switch to using only answers
+
+        boolean useOnlyAnswers = Utils.switchToAnswers(info); //Evaluate the info to see if we should switch to using only answers
 
         //If the word guess is correct, end the loop
         if(info.toLowerCase(Locale.ROOT).equals("correct")) return;
 
         //Update the sorted list of words
-        wordList = ListModifiers.updateList(startingGuess, info, wordList);
+        wordList = ListModifiers.updateList(guess, info, wordList);
 
         List<String> sortedAnswers;
 
@@ -82,11 +83,11 @@ public class Main {
             System.out.println("Remaining valid words " + wordList); //Output the set of remaining valid words
             System.out.println("Size of valid word list: " + wordList.size());
 
-            String guess = useOnlyAnswers ? sortedAnswers.get(0) :wordList.get(0); //Get the guess based on whether or not we are using only words from the answer set
+            guess = Utils.getGuess(wordList, sortedAnswers, originalList, lastNormalGuess, lastNormalInfo, useOnlyAnswers, timesGuessed); //Get the guess based on whether or not we are using only words from the answer set
             System.out.println("Guess #" + (timesGuessed+1) + ". " + guess);
 
             info = inputReader.readLine(); //Get the info about the last guess
-            useOnlyAnswers = Utils.switchToAnswers(info); //Evaluate the info to see if we should switch to using only answers
+            if(wordList.contains(guess)) useOnlyAnswers = Utils.switchToAnswers(info); //Evaluate the info to see if we should switch to using only answers
 
             //If the word guess is correct, end the loop
             if(info.toLowerCase(Locale.ROOT).equals("correct") || info.toLowerCase(Locale.ROOT).equals("ggggg")) {
@@ -97,6 +98,11 @@ public class Main {
             wordList = ListModifiers.updateList(guess, info, wordList);
 
             timesGuessed++;
+
+            if(Utils.mode == Utils.GuessMode.Normal || Utils.mode == Utils.GuessMode.Answers) {
+                lastNormalGuess = guess;
+                lastNormalInfo = info;
+            }
         }
     }
 
@@ -117,7 +123,7 @@ public class Main {
 
             //Begin with one single starting guess
             String guess = startingGuess;
-            String info = getInfoFromWord(guess, w);
+            String info = Utils.getInfoFromWord(guess, w);
 
             if(info.equals("ggggg")) success = true;
 
@@ -137,12 +143,10 @@ public class Main {
                 }
 
                 //Generate and apply the new guess for this attempt
-                if(sortedAnswers.size() > 0) guess = useOnlyAnswers ? sortedAnswers.get(0) :wordList.get(0); //Get the guess based on whether or not we are using only words from the answer set
-                else  {
-                    break;
-                }
+                guess = Utils.getGuess(wordList, sortedAnswers, originalList, guess, info, useOnlyAnswers, guesses);
+                if (guess == null) break;
 
-                info = getInfoFromWord(guess, w); //Get the info about the last guess
+                info = Utils.getInfoFromWord(guess, w); //Get the info about the last guess
                 useOnlyAnswers = Utils.switchToAnswers(info); //Evaluate the info to see if we should switch to using only answers
 
                 if(info.toLowerCase(Locale.ROOT).equals("ggggg")) {
@@ -152,7 +156,6 @@ public class Main {
 
                 //Remove the available words based on the guess and the info
                 wordList = ListModifiers.updateList(guess, info, wordList);
-
             }
 
             GameData thisGame = new GameData(success, guesses, w);
@@ -164,16 +167,10 @@ public class Main {
             games.add(thisGame);
 
             //Output how far through we are with nice pretty formatting
-            System.out.print("\b\b\b\b\b");
-            double fractionComplete = ((double) unsortedAnswers.indexOf(w) + 1) / unsortedAnswers.size();
-            DecimalFormat df = new DecimalFormat("##.#");
-            String percentage = df.format(fractionComplete * 100) + "%";
-            if(percentage.indexOf('.') == -1) percentage = percentage.substring(0, percentage.indexOf('%')-1) + ".0%";
-            while(percentage.length() < 5) {
-                percentage = "0" + percentage;
-            }
-            System.out.print(percentage);
+            Utils.printSimulationProgress(unsortedAnswers, w);
         }
+        
+        System.out.println(""); //Make a new line so the next text isn't printed on top of the completion percent
 
         double totalGuesses = 0;
         double totalSuccesses = 0;
@@ -183,47 +180,7 @@ public class Main {
             totalSuccesses += d.isSuccess() ? 1 : 0;
         }
 
-        for(GameData d : failedGames) {
-            System.out.println("failed game: " + d.getAnswer());
-        }
-
-        System.out.println("Total games: " + games.size());
-        System.out.println("Total Successes: " + totalSuccesses);
-        System.out.println("Total Failures: " + (games.size() - totalSuccesses));
-        System.out.println("Success Rate: " + (totalSuccesses / games.size()));
-        System.out.println("Average guesses: " + (totalGuesses / totalSuccesses));
-        GameData bestGame = games.stream().min(Comparator.comparingDouble(GameData::getGuesses)).get();
-        System.out.println("Best guess: " + bestGame.getAnswer() + " with " + bestGame.getGuesses() + " guesses");
-    }
-
-    private static String getInfoFromWord(String guess, String answer) {
-        List<Character> answerList = Utils.stringToCharList(answer);
-
-        List<Character> infoList = new ArrayList<>();
-
-        for(int i = 0; i<guess.length(); i++) {
-            Character c = guess.charAt(i);
-            if(!answerList.contains(c)) infoList.add('n');
-            else {
-                if(rightIndex(c,i, answer)) {
-                    infoList.add('g');
-                } else {
-                    infoList.add('y');
-                }
-            }
-        }
-
-        return Utils.charListToString(infoList);
-    }
-
-    private static boolean rightIndex(Character c, Integer index, String answer) {
-        int lowerBound = 0;
-        while(answer.indexOf(c, lowerBound) != -1) {
-            if(answer.indexOf(c, lowerBound) == index) return true;
-            lowerBound = answer.indexOf(c, lowerBound) + 1;
-        }
-
-        return false;
+        Utils.printSimulationStats(games, failedGames, totalGuesses, totalSuccesses);
     }
 
     private static List<String> sortWordList(List<String> unsortedWords) throws InterruptedException {
