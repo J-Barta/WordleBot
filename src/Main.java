@@ -10,7 +10,7 @@ import java.util.*;
 public class Main {
     static int threadCount = 12; //The number of threads
 
-    static boolean actualGame = false;
+    static boolean actualGame = true;
     static String startingGuess = "tares";
 
 
