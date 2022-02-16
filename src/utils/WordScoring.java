@@ -1,21 +1,20 @@
 package utils;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import java.io.CharArrayReader;
+import java.util.*;
 
 public class WordScoring {
-    public static List<WordData> sortWordList(List<String> unsortedList, List<String> fullList, int id) {
-        List<WordData> wordsWithWeight = new ArrayList<>();
-        //Evaluate the score of each word
-//        System.out.print("Starting thread...");
+    public double totalSearched = 0;
 
+    public WordScoring() {}
+
+    public List<WordData> sortWordList(List<String> unsortedList, List<String> fullList, int id) {
+        List<WordData> wordsWithWeight = new ArrayList<>();
+
+        //Evaluate the score of each word
         for(String s : unsortedList) {
             wordsWithWeight.add(new WordData(s, evaluateWord(s, fullList)));
-
-//            System.out.print('\r');
-//            System.out.print("Thread #" + id + " is " + ((unsortedList.indexOf(s) / (double) unsortedList.size()) * 100) + "% of the way done.");
+            totalSearched++;
         }
 
         //Sort the words by weight
@@ -30,43 +29,62 @@ public class WordScoring {
      * @return expected value
      */
     public static double evaluateWord(String word, List<String> unsortedList) {
-
-        Character[] info = {'n', 'n', 'n', 'n', 'n'};
+        List<Character> charList = Utils.stringToCharList(word);
+        //Generate a list equal to the length of the word with all "n"
+        List<Character> info = getInitialList(charList);
 
         double totalValue = 0;
         int countedIterations = 0;
         while (true) {
             String correctedInfo = handleImpossibilities(word, Utils.charListToString(info));
             double thisValue = ListModifiers.updateList(word, correctedInfo, unsortedList, false).size();
-//            if(charListToString(info).equals("nnnnn")) System.out.println("Scored word " + word + " with info " + correctedInfo + " as " + thisValue + " with word list size " + unsortedList.size());
+
             totalValue += thisValue;
             if(thisValue > 0) countedIterations++;
 
-            info[0] = nextInfoChar(info[0]);
+            if(recursiveUpdateList(info))  {
+                break;
+            }
 
-            if(info[0] == 'n') {
-                info[1] = nextInfoChar(info[1]);
+        }
 
-                if(info[1] == 'n') {
-                    info[2] = nextInfoChar(info[2]);
+//        System.out.println("Scored word " + word + " as " + totalValue / countedIterations + " (with " + countedIterations + " counted iterations)");
+        return totalValue / (double) countedIterations;
+    }
 
-                    if(info[2] == 'n') {
-                        info[3] = nextInfoChar(info[3]);
+    public static List<Character> getInitialList(List<Character> charList) {
+        List<Character> info = new ArrayList<>();
 
-                        if(info[3] == 'n') {
-                            info[4] = nextInfoChar(info[4]);
+        for(int i = 0; i<charList.size(); i++) {
+            info.add('n');
+        }
+        return info;
+    }
 
-                            if(info[4] == 'n') {
-                                break;
-                            }
-                        }
-                    }
-                }
+    private static boolean recursiveUpdateList(List<Character> info, int startingIndex) {
+        boolean lastModified = false;
+        boolean everyCharacterGreen = false;
+        if(info.size() == startingIndex-1) {
+            everyCharacterGreen = true;
+            for(Character c : info) {
+                if(c != 'g') everyCharacterGreen = false;
             }
         }
 
-//        System.out.println("Scored word " + word + " as " + totalValue / countedIterations + " (with " + countedIterations + " counted iterations");
-        return totalValue / (double) countedIterations;
+        if(!(info.size() == startingIndex + 1) && !everyCharacterGreen) {
+            info.set(startingIndex, nextInfoChar(info.get(startingIndex)));
+            if(info.get(startingIndex) == 'n' && info.size() != startingIndex -1) {
+                lastModified = recursiveUpdateList(info, startingIndex+1);
+            }
+        } else {
+            return true;
+        }
+
+        return lastModified;
+    }
+
+    private static boolean recursiveUpdateList(List<Character> info) {
+       return recursiveUpdateList(info, 0);
     }
 
     /**
