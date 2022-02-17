@@ -18,8 +18,8 @@ public class Main {
 
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        File guesses = new File("src/words/guesses2.txt");
-        File answers = new File("src/words/answers2.txt");
+        File guesses = new File("src/words/guesses.txt");
+        File answers = new File("src/words/answers.txt");
 
         BufferedReader guessesReader = new BufferedReader(new FileReader(guesses));
         BufferedReader answersReader = new BufferedReader(new FileReader(answers));
@@ -34,7 +34,7 @@ public class Main {
         }
 
         while((st = answersReader.readLine()) != null) {
-//            unsortedWords.add(st);
+            unsortedWords.add(st);
             unsortedAnswers.add(st);
         }
 
@@ -75,7 +75,7 @@ public class Main {
         while(timesGuessed < 6) {
 
             //Re-evaluate the word list to find the word that will give the fewest answers on average
-            wordList = sortWordList(wordList, true);
+            wordList = sortWordList(wordList);
 
             //Update the sorted list of answers
             sortedAnswers = new ArrayList<>();
@@ -114,14 +114,6 @@ public class Main {
 
         System.out.print("Percent complete: 00.0%");
 
-        List<Character> firstWord = Utils.stringToCharList(originalList.get(0));
-        List<Character> infoList = new ArrayList<>();
-        for(int i = 0; i < firstWord.size(); i++) {
-            infoList.add('g');
-        }
-
-        String correctInfo = Utils.charListToString(infoList);
-
         for(String w : unsortedAnswers) {
             List<String> wordList = List.copyOf(originalList);
 
@@ -134,7 +126,7 @@ public class Main {
             String guess = startingGuess;
             String info = getInfoFromWord(guess, w);
 
-            if(info.equals(correctInfo)) success = true;
+            if(info.equals("ggggg")) success = true;
 
             //Update the sorted list of words
             wordList = ListModifiers.updateList(startingGuess, info, wordList);
@@ -143,7 +135,7 @@ public class Main {
                 guesses++;
 
                 //Re-evaluate the word list to find the word that will give the fewest answers on average
-                wordList = sortWordList(wordList, false);
+                wordList = sortWordList(wordList);
 
                 //Update the sorted list of answers
                 sortedAnswers = new ArrayList<>();
@@ -160,7 +152,7 @@ public class Main {
                 info = getInfoFromWord(guess, w); //Get the info about the last guess
                 useOnlyAnswers = Utils.switchToAnswers(info); //Evaluate the info to see if we should switch to using only answers
 
-                if(info.toLowerCase(Locale.ROOT).equals(correctInfo)) {
+                if(info.toLowerCase(Locale.ROOT).equals("ggggg")) {
                     success = true;
                     break;
                 }
@@ -189,7 +181,6 @@ public class Main {
             }
             System.out.print(percentage);
         }
-        System.out.println("");
 
         double totalGuesses = 0;
         double totalSuccesses = 0;
@@ -242,7 +233,7 @@ public class Main {
         return false;
     }
 
-    private static List<String> sortWordList(List<String> unsortedWords, boolean showTelemetry) throws InterruptedException {
+    private static List<String> sortWordList(List<String> unsortedWords) throws InterruptedException {
         int wordsPerJump = unsortedWords.size() / threadCount;
 
         List<WordData> allWordData = new ArrayList<>();
@@ -268,17 +259,13 @@ public class Main {
             }
 
             boolean allFinished = false;
-            if(showTelemetry) System.out.println();
             while (!allFinished) {
                 allFinished = true;
-                int totalScored = 0;
                 for (ScoringThread t : threads) {
                     if (!t.isFinished()) allFinished = false;
-
-                    totalScored += t.wordsSearched();
                 }
 
-                if(showTelemetry) System.out.print("\rProgress: " + totalScored + "/" + unsortedWords.size() + " words searched.");
+                //            System.out.println("Waiting for all threads to finish...");
 
                 Thread.sleep(50);
             }
@@ -289,8 +276,7 @@ public class Main {
 
             Collections.sort(allWordData, Comparator.comparingDouble(WordData::getScore));
         } else {
-            WordScoring scoring = new WordScoring();
-            allWordData = scoring.sortWordList(unsortedWords, unsortedWords, 0);
+            allWordData = WordScoring.sortWordList(unsortedWords, unsortedWords, 0);
         }
 
         for (WordData d : allWordData) {
