@@ -10,13 +10,13 @@ import java.util.*;
 public class Main {
     static int threadCount = 12; //The number of threads
 
-    static boolean actualGame = false;
+    static boolean actualGame = true;
     static String startingGuess = "saline";
 
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        File guesses = new File("src/words/guesses.txt");
-        File answers = new File("src/words/answers.txt");
+        File guesses = new File("src/words/guesses2.txt");
+        File answers = new File("src/words/answers2.txt");
 
         BufferedReader guessesReader = new BufferedReader(new FileReader(guesses));
         BufferedReader answersReader = new BufferedReader(new FileReader(answers));
