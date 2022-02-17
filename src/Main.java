@@ -10,7 +10,7 @@ import java.util.*;
 public class Main {
     static int threadCount = 12; //The number of threads
 
-    static boolean actualGame = false;
+    static boolean actualGame = true;
     static String startingGuess = "saline";
 
 
@@ -31,14 +31,13 @@ public class Main {
         }
 
         while((st = answersReader.readLine()) != null) {
-//            unsortedWords.add(st);
+            unsortedWords.add(st);
             unsortedAnswers.add(st);
         }
 
         System.out.println(unsortedAnswers.size());
-
-//        List<String> sortedList = sortWordList(unsortedWords);
-//        System.out.println(sortedList);
+        List<String> sortedList = sortWordList(unsortedWords, true);
+        System.out.println(sortedList);
 
         if(actualGame) {
             //Normal game loop
