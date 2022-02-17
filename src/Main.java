@@ -11,6 +11,9 @@ public class Main {
     static int threadCount = 12; //The number of threads
 
     static boolean actualGame = true;
+//    static String startingGuess = "saline";
+//    static String startingGuess = "tares";
+
     static String startingGuess = "tares";
 
 
@@ -35,7 +38,9 @@ public class Main {
             unsortedAnswers.add(st);
         }
 
-        System.out.println(sortWordList(unsortedWords));
+
+        List<String> sortedList = sortWordList(unsortedWords, true);
+        System.out.println(sortedList);
 
         if(actualGame) {
             //Normal game loop
