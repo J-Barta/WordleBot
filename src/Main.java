@@ -35,6 +35,8 @@ public class Main {
             unsortedAnswers.add(st);
         }
 
+        System.out.println(sortWordList(unsortedWords));
+
         if(actualGame) {
             //Normal game loop
             while (true) {
