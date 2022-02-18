@@ -19,7 +19,7 @@ public class WordScoring {
 
         //Sort the words by weight
         Collections.sort(wordsWithWeight, Comparator.comparingDouble(WordData::getScore));
-        Collections.reverse(wordsWithWeight);
+//        Collections.reverse(wordsWithWeight);
         return wordsWithWeight;
     }
 

@@ -14,12 +14,12 @@ public class Main {
 //    static String startingGuess = "saline";
 //    static String startingGuess = "tares";
 
-    static String startingGuess = "tares";
+    static String startingGuess = "cocco";
 
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        File guesses = new File("src/words/guesses2.txt");
-        File answers = new File("src/words/answers2.txt");
+        File guesses = new File("src/words/guesses.txt");
+        File answers = new File("src/words/answers.txt");
 
         BufferedReader guessesReader = new BufferedReader(new FileReader(guesses));
         BufferedReader answersReader = new BufferedReader(new FileReader(answers));
@@ -34,13 +34,13 @@ public class Main {
         }
 
         while((st = answersReader.readLine()) != null) {
-//            unsortedWords.add(st);
+            unsortedWords.add(st);
             unsortedAnswers.add(st);
         }
 
 
-        List<String> sortedList = sortWordList(unsortedWords, true);
-        System.out.println(sortedList);
+//        List<String> sortedList = sortWordList(unsortedWords, true);
+//        System.out.println(sortedList);
 
         if(actualGame) {
             //Normal game loop
@@ -72,7 +72,7 @@ public class Main {
 
         int timesGuessed = 1;
         //We only get 6 guesses and we've already guessed once
-        while(timesGuessed < 6) {
+        while(timesGuessed < 50) {
 
             //Re-evaluate the word list to find the word that will give the fewest answers on average
             wordList = sortWordList(wordList, true);
@@ -242,7 +242,9 @@ public class Main {
         return false;
     }
 
-    private static List<String> sortWordList(List<String> unsortedWords, boolean showTelemetry) throws InterruptedException {
+    public static List<String> sortWordList(List<String> usnortedWords, boolean showTelemetry) throws InterruptedException { return sortWordList(usnortedWords, showTelemetry, false);}
+
+    private static List<String> sortWordList(List<String> unsortedWords, boolean showTelemetry, boolean forceSingleThread) throws InterruptedException {
         int wordsPerJump = unsortedWords.size() / threadCount;
 
         List<WordData> allWordData = new ArrayList<>();
@@ -297,6 +299,7 @@ public class Main {
             sortedList.add(d.getWord());
         }
 
+        Collections.reverse(sortedList);
         return sortedList;
     }
 
