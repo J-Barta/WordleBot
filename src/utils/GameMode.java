@@ -4,20 +4,17 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class GameModes {
-    private Mode mode;
+public class GameMode {
     private List<String> words;
     private List<String> answers;
     String initialGuess;
 
-    public GameModes(Mode mode, String words, String answer, String initialGuess) throws IOException {
-        this.mode = mode;
-
-        File guesses = new File("src/words/"+words+".txt");
-        File answers = new File("src/words/"+answer+".txt");
+    public GameMode(String wordFile, String answerFile, String initialGuess) throws IOException {
+        File guesses = new File("src/words/"+wordFile+".txt");
+        File solutions = new File("src/words/"+answerFile+".txt");
 
         BufferedReader guessesReader = new BufferedReader(new FileReader(guesses));
-        BufferedReader answersReader = new BufferedReader(new FileReader(answers));
+        BufferedReader answersReader = new BufferedReader(new FileReader(solutions));
 
         String st;
 
@@ -25,12 +22,16 @@ public class GameModes {
         this.answers = new ArrayList<>();
 
         while((st = guessesReader.readLine()) != null) {
-            this.words.add(st);
+            words.add(st);
         }
 
         while((st = answersReader.readLine()) != null) {
-            this.words.add(st);
-            this.answers.add(st);
+            answers.add(st);
+        }
+
+        //Add any answers that are not in the guesses list already
+        for(int i = 0; i< answers.size(); i++) {
+            if(!words.contains(answers.get(i))) words.add(answers.get(i));
         }
 
         this.initialGuess = initialGuess;
@@ -40,9 +41,6 @@ public class GameModes {
         return initialGuess;
     }
 
-    public Mode getMode() {
-        return mode;
-    }
 
     public List<String> getWords() {
         return words;
@@ -53,7 +51,4 @@ public class GameModes {
     }
 
 
-    public static enum Mode {
-        Wordle, Wordle6, Absurdle
-    }
 }

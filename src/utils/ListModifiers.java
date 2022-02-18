@@ -1,7 +1,9 @@
 package utils;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class ListModifiers {
     /**
@@ -10,25 +12,48 @@ public class ListModifiers {
      * @param words
      * @return
      */
-    public static List<String> updateList(String guess, String info, List<String> words, boolean normalGuess) {
+    public static List<String> updateList(String guess, String info, List<String> words) {
         List<String> correctedWords = words;
+        List<Character> guessCharList = Utils.stringToCharList(guess);
+        List<Character> infoList = Utils.stringToCharList(info);
         for(int i = 0; i<info.length(); i++) {
             Character c  = info.charAt(i);
-            if(c.equals('n')) {
-                correctedWords = removeLetter(guess.charAt(i), correctedWords);
-            } else if(c.equals('y')) {
-                correctedWords = removeWordsWithoutLetter(guess.charAt(i), correctedWords);
-                correctedWords = removeWordsWithLetterAtIndex(guess.charAt(i), i, correctedWords);
-            } else if(c.equals('g')) {
-                correctedWords = removeWordsWithoutLetterAtIndex(guess.charAt(i), i, correctedWords);
 
+            //Boolean that triggers whether special behvaior should occur (if there is a double letter in the guess but not in the word)
+            boolean specialBehavior = false;
+
+            int startIndex = 0;
+            Map<Integer, Character> checkMap = new HashMap<>();
+            while(guess.indexOf(guessCharList.get(i), startIndex) != -1) {
+                int index = guess.indexOf(guessCharList.get(i), startIndex);
+                checkMap.put(index, infoList.get(index));
+
+                startIndex = index + 1;
+            }
+
+            //If there is a duplicate letter, we need to decide if special behavior is necessary
+            if(checkMap.size() > 1) {
+                if(
+                    checkMap.containsValue('n') &&
+                    (checkMap.containsValue('y') || checkMap.containsValue('g'))
+                    && c == 'n'
+                ) specialBehavior = true;
+            }
+
+            if(!specialBehavior) {
+                if (c.equals('n')) {
+                    correctedWords = removeLetter(guessCharList.get(i), correctedWords);
+                } else if (c.equals('y')) {
+                    correctedWords = removeWordsWithoutLetter(guessCharList.get(i), correctedWords);
+                    correctedWords = removeWordsWithLetterAtIndex(guessCharList.get(i), i, correctedWords);
+                } else if (c.equals('g')) {
+                    correctedWords = removeWordsWithoutLetterAtIndex(guessCharList.get(i), i, correctedWords);
+                }
+            } else {
+                correctedWords = removeWordsWithLetterAtIndex(guessCharList.get(i), i, correctedWords);
             }
         }
         return correctedWords;
-    }
-
-    public static List<String> updateList(String guess, String info, List<String> words) {
-        return updateList(guess, info, words, true);
     }
 
     /**

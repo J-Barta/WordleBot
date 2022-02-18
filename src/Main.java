@@ -1,7 +1,4 @@
-import utils.ListModifiers;
-import utils.Utils;
-import utils.WordData;
-import utils.WordScoring;
+import utils.*;
 
 import java.io.*;
 import java.text.DecimalFormat;
@@ -10,32 +7,31 @@ import java.util.*;
 public class Main {
     static int threadCount = 12; //The number of threads
 
-    static boolean actualGame = true;
-//    static String startingGuess = "saline";
-//    static String startingGuess = "tares";
+    static final boolean actualGame = false;
+    static final Mode gameMode = Mode.Wordle;
+    static final boolean doInitialSort = false;
+    static String startingGuess;
 
-    static String startingGuess = "cocco";
-
+    //TODO: Multithreaded simulations
+    //TODO: Quordle
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        File guesses = new File("src/words/guesses.txt");
-        File answers = new File("src/words/answers.txt");
 
-        BufferedReader guessesReader = new BufferedReader(new FileReader(guesses));
-        BufferedReader answersReader = new BufferedReader(new FileReader(answers));
+        Map<Mode, GameMode> gameModes = Map.ofEntries(
+            Map.entry(Mode.Wordle, new GameMode("guesses", "answers", "tares")),
+            Map.entry(Mode.Wordle6, new GameMode("guesses2", "answers2", "saline")),
+            Map.entry(Mode.Absurdle, new GameMode("guesses", "answers", "cocco"))
+        );
 
-        String st;
+        List<String> unsortedWords = gameModes.get(gameMode).getWords();
+        List<String> unsortedAnswers = gameModes.get(gameMode).getAnswers();
+        startingGuess = gameModes.get(gameMode).getInitialGuess();
 
-        List<String> unsortedWords = new ArrayList<>();
-        List<String> unsortedAnswers = new ArrayList<>();
-
-        while((st = guessesReader.readLine()) != null) {
-            unsortedWords.add(st);
-        }
-
-        while((st = answersReader.readLine()) != null) {
-            unsortedWords.add(st);
-            unsortedAnswers.add(st);
+        if(doInitialSort) {
+            List<String> sortedList = sortWordList(unsortedWords, true);
+            System.out.println("Complete sorted list: " + sortedList);
+            System.out.println("Identified best word as " + sortedList.get(0));
+            startingGuess = sortedList.get(0);
         }
 
 
@@ -70,9 +66,15 @@ public class Main {
 
         List<String> sortedAnswers;
 
+        List<Character> firstWord = Utils.stringToCharList(unsortedAnswers.get(0));
+        List<Character> infoList = new ArrayList<>();
+        for(int i = 0; i < firstWord.size(); i++) {
+            infoList.add('g');
+        }
+
         int timesGuessed = 1;
         //We only get 6 guesses and we've already guessed once
-        while(timesGuessed < 50) {
+        while(timesGuessed <= 6 || gameMode == Mode.Absurdle) {
 
             //Re-evaluate the word list to find the word that will give the fewest answers on average
             wordList = sortWordList(wordList, true);
@@ -179,15 +181,13 @@ public class Main {
             games.add(thisGame);
 
             //Output how far through we are with nice pretty formatting
-            System.out.print("\b\b\b\b\b");
+            System.out.print("\r");
+
             double fractionComplete = ((double) unsortedAnswers.indexOf(w) + 1) / unsortedAnswers.size();
-            DecimalFormat df = new DecimalFormat("##.#");
-            String percentage = df.format(fractionComplete * 100) + "%";
-            if(percentage.indexOf('.') == -1) percentage = percentage.substring(0, percentage.indexOf('%')-1) + ".0%";
-            while(percentage.length() < 5) {
-                percentage = "0" + percentage;
-            }
-            System.out.print(percentage);
+
+            double percentage = truncatePercentage(fractionComplete * 100, 2);
+
+            System.out.print("Percent complete: " + percentage + "%");
         }
         System.out.println("");
 
@@ -210,6 +210,16 @@ public class Main {
         System.out.println("Average guesses: " + (totalGuesses / totalSuccesses));
         GameData bestGame = games.stream().min(Comparator.comparingDouble(GameData::getGuesses)).get();
         System.out.println("Best guess: " + bestGame.getAnswer() + " with " + bestGame.getGuesses() + " guesses");
+    }
+
+    private static double truncatePercentage(double fracitonComplete, double decimalPlaces) {
+        double value = fracitonComplete;
+
+        value = value * Math.pow(10, decimalPlaces);
+        value = Math.floor(value);
+        value = value / Math.pow(10, decimalPlaces);
+
+        return value;
     }
 
     private static String getInfoFromWord(String guess, String answer) {
@@ -251,7 +261,8 @@ public class Main {
         List<String> sortedList = new ArrayList<>();
 
         //Decide whether to multithread or not
-        if(unsortedWords.size() > 50) {
+        long startTime = System.currentTimeMillis();
+        if(unsortedWords.size() > 50 && !forceSingleThread) {
 
             List<ScoringThread> threads = new ArrayList<>();
 
@@ -299,8 +310,18 @@ public class Main {
             sortedList.add(d.getWord());
         }
 
-        Collections.reverse(sortedList);
+        if(gameMode == Mode.Absurdle) Collections.reverse(sortedList);
+
+        long endTime = System.currentTimeMillis();
+        long runTime = endTime - startTime;
+
+        if(showTelemetry) System.out.println();
+        if(showTelemetry) System.out.println("Completed scoring " + sortedList.size() + " words. It took " + (runTime/1000.0) + " seconds. Speed: " + ((double) sortedList.size()) / (runTime/1000.0) + " words per second");
+
         return sortedList;
     }
 
+    public enum Mode {
+        Wordle, Wordle6, Absurdle
+    }
 }

@@ -38,7 +38,7 @@ public class WordScoring {
         int countedIterations = 0;
         while (true) {
             String correctedInfo = handleImpossibilities(word, Utils.charListToString(info));
-            double thisValue = ListModifiers.updateList(word, correctedInfo, unsortedList, false).size();
+            double thisValue = ListModifiers.updateList(word, correctedInfo, unsortedList).size();
 
             totalValue += thisValue;
             if(thisValue > 0) countedIterations++;
