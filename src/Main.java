@@ -20,7 +20,8 @@ public class Main {
         Map<Mode, GameMode> gameModes = Map.ofEntries(
             Map.entry(Mode.Wordle, new GameMode("guesses", "answers", "tares")),
             Map.entry(Mode.Wordle6, new GameMode("guesses2", "answers2", "saline")),
-            Map.entry(Mode.Absurdle, new GameMode("guesses", "answers", "cocco"))
+            Map.entry(Mode.Absurdle, new GameMode("guesses", "answers", "cocco")),
+            Map.entry(Mode.Quordle, new GameMode("guesses", "answers", "tares"))
         );
 
         List<String> unsortedWords = gameModes.get(gameMode).getWords();
@@ -322,6 +323,6 @@ public class Main {
     }
 
     public enum Mode {
-        Wordle, Wordle6, Absurdle
+        Wordle, Wordle6, Absurdle, Quordle
     }
 }
