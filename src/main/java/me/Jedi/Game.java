@@ -9,7 +9,6 @@ import java.util.List;
 public class Game {
     private List<String> wordList;
     private List<String> unsortedAnswers;
-    private List<String> sortedAnswers;
     private String firstGuess;
     private int guesses;
     private boolean useOnlyAnswers;
@@ -22,8 +21,6 @@ public class Game {
         this.wordList = originalList;
         this.unsortedAnswers = unsortedAnswers;
         this.firstGuess = firstGuess;
-
-        this.sortedAnswers = new ArrayList<>();
 
         guesses = 0;
         useOnlyAnswers = false;
@@ -38,25 +35,31 @@ public class Game {
         correctInfo = Utils.charListToString(infoList);
     }
 
-    public String getNextGuess() throws InterruptedException {
+    public String getNextGuess(boolean showTelemetry) throws InterruptedException {
         guesses ++;
 
         if(guesses == 1) currentGuess =  firstGuess;
         else {
-            if (forceNotAnswers) useOnlyAnswers = true;
+            if (forceNotAnswers) useOnlyAnswers = false;
 
-            wordList = Main.sortWordList(wordList, true);
+            wordList = Main.sortWordList(wordList, showTelemetry);
 
-            sortedAnswers = new ArrayList<>();
-            for (String s : wordList) {
-                if (unsortedAnswers.contains(s)) sortedAnswers.add(s);
+            if(wordList.size() == 0) return null;
+
+            if (useOnlyAnswers)  {
+                int i =0;
+                while(!unsortedAnswers.contains(wordList.get(i))) i++;
+                return currentGuess = wordList.get(i);
             }
 
-            if (useOnlyAnswers) return currentGuess = sortedAnswers.get(0);
             else currentGuess = wordList.get(0);
         }
 
         return currentGuess;
+    }
+
+    public String getNextGuess() throws InterruptedException {
+        return getNextGuess(true);
     }
 
     /**
@@ -87,7 +90,7 @@ public class Game {
         return guesses;
     }
 
-    private void forceNotAnswers() {
+    public void forceNotAnswers() {
         forceNotAnswers = true;
     }
 }

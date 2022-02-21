@@ -9,6 +9,5 @@ me\Jedi\ScoringThread.class
 me\Jedi\utils\HTMLDriver$Letter.class
 me\Jedi\Main$WordleTypes.class
 me\Jedi\GameData.class
-me\Jedi\utils\Game.class
 me\Jedi\utils\GameMode.class
 me\Jedi\utils\WordScoring.class

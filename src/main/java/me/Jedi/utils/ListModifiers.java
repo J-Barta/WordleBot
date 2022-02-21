@@ -51,6 +51,7 @@ public class ListModifiers {
                 }
             } else {
                 correctedWords = removeWordsWithLetterAtIndex(guessCharList.get(i), i, correctedWords);
+                correctedWords = removeWordsWithDupedChar(guessCharList.get(i), correctedWords, checkMap.size());
             }
         }
         return correctedWords;
@@ -140,5 +141,25 @@ public class ListModifiers {
         }
 
         return correctedList;
+    }
+
+    public static List<String> removeWordsWithDupedChar(Character c, List<String> words, int dupeCount) {
+        List<String> correctedList = new ArrayList<>();
+
+        for(String s : words) {
+            List<Character> charList = Utils.stringToCharList(s);
+
+            if(instancesOf(c, charList) < dupeCount) correctedList.add(s);
+        }
+
+        return correctedList;
+    }
+
+    private static int instancesOf(Character c, List<Character> list) {
+        int count = 0;
+        for(Character character : list) {
+            if(character.equals(c)) count++;
+        }
+        return count;
     }
 }

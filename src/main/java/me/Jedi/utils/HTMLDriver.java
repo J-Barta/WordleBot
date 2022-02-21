@@ -6,6 +6,7 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 
+import javax.swing.text.html.HTML;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -19,12 +20,12 @@ public class HTMLDriver {
     private Map<Letter, WebElement> keyboardMap;
 
     public HTMLDriver(String url) {
-        System.setProperty("webdriver.chrome.driver", "src/main/java/me/Jedi/chromedriver.exe");
+        System.setProperty("webdriver.chrome.driver", "C:\\Program Files\\WordleBot\\chromedriver.exe");
         WebDriver driver = new ChromeDriver();
         driver.get(url);
         driver.manage().timeouts().implicitlyWait(5, TimeUnit.SECONDS);
 
-        js=  (JavascriptExecutor) driver;
+        js =  (JavascriptExecutor) driver;
 
         WebElement closeIntro = (WebElement) js.executeScript("return document.querySelector(\"body > game-app\").shadowRoot.querySelector(\"#game > game-modal\").shadowRoot.querySelector(\"div > div > div > game-icon\").shadowRoot.querySelector(\"svg\")");
         closeIntro.click();
@@ -75,6 +76,10 @@ public class HTMLDriver {
         }
 
         return Utils.charListToString(info);
+    }
+
+    public void close() {
+        this.driver.close();
     }
 
     private void pressKey(Character c) {

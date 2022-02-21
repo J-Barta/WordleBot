@@ -10,7 +10,7 @@ import java.util.*;
 public class Main {
     static int threadCount = 12; //The number of threads
 
-    static final Mode gameMode = Mode.Manual;
+    static final Mode gameMode = Mode.Automatic;
     static final WordleTypes wordleType = WordleTypes.Wordle6;
     static final boolean doInitialSort = false;
     static String startingGuess;
@@ -18,7 +18,7 @@ public class Main {
 
     //TODO: Multithreaded simulations
     //TODO: Quordle
-    //TODO: HTML abuse or whatever
+    //TODO: Correct guessing bug (exapmle found in word "other")
 
     public static void main(String[] args) throws IOException, InterruptedException {
 
@@ -60,6 +60,7 @@ public class Main {
 
         BufferedReader inputReader = new BufferedReader(new InputStreamReader(System.in)); //Create a buffered reader to read the inputs
 
+        if(wordleType == WordleTypes.Absurdle) game.forceNotAnswers();
 
         //We only get 6 guesses and we've already guessed once
         while(game.getGuesses() < 6 || wordleType == WordleTypes.Absurdle) {
@@ -80,71 +81,21 @@ public class Main {
     }
 
 
-    private static void autoWin(List<String> wordList, List<String> unsortedAnswers) throws IOException, InterruptedException {
-        boolean useOnlyAnswers;
+    private static void autoWin(List<String> wordList, List<String> unsortedAnswers) throws InterruptedException {
+        Game game = new Game(wordList, unsortedAnswers, startingGuess);
 
         HTMLDriver driver = new HTMLDriver(activeType.getUrl());
 
-        System.out.println("First guess, as always, is " + startingGuess);
+        if(wordleType == WordleTypes.Absurdle) game.forceNotAnswers();
 
-        driver.typeWord(startingGuess);
-
-        String info = driver.getInfo(1);
-
-        useOnlyAnswers = Utils.switchToAnswers(info); //Evaluate the info to see if we should switch to using only answers
-
-        //Update the sorted list of words
-        wordList = ListModifiers.updateList(startingGuess, info, wordList);
-
-        List<String> sortedAnswers;
-
-        List<Character> firstWord = Utils.stringToCharList(unsortedAnswers.get(0));
-        List<Character> infoList = new ArrayList<>();
-        for(int i = 0; i < firstWord.size(); i++) {
-            infoList.add('g');
-        }
-
-        String correctInfo = Utils.charListToString(infoList);
-
-        //If the word guess is correct, end the loop
-        if(info.toLowerCase().equals(correctInfo)) return;
-
-        int timesGuessed = 1;
         //We only get 6 guesses and we've already guessed once
-        while(timesGuessed <= 6 || wordleType == WordleTypes.Absurdle) {
+        while(game.getGuesses() < 6 || wordleType == WordleTypes.Absurdle) {
 
-            //Re-evaluate the word list to find the word that will give the fewest answers on average
-            wordList = sortWordList(wordList, true);
-
-            //Update the sorted list of answers
-            sortedAnswers = new ArrayList<>();
-            for(String s : wordList) {
-                if(unsortedAnswers.contains(s)) sortedAnswers.add(s);
-            }
-
-            String modeOutput = !useOnlyAnswers ? "all words" : "answers only";
-            System.out.println("Current mode: " + modeOutput);
-
-            System.out.println("Remaining valid words " + wordList); //Output the set of remaining valid words
-            System.out.println("Size of valid word list: " + wordList.size());
-
-            String guess = useOnlyAnswers ? sortedAnswers.get(0) :wordList.get(0); //Get the guess based on whether or not we are using only words from the answer set
-            System.out.println("Guess #" + (timesGuessed+1) + ". " + guess);
-            Thread.sleep(1500);
+            String guess = game.getNextGuess(); //Get the guess based on whether or not we are using only words from the answer set
+            Thread.sleep(1000);
             driver.typeWord(guess);
 
-            info = driver.getInfo(timesGuessed+1);
-            useOnlyAnswers = Utils.switchToAnswers(info); //Evaluate the info to see if we should switch to using only answers
-
-            //If the word guess is correct, end the loop
-            if(info.toLowerCase(Locale.ROOT).equals("correct") || info.toLowerCase(Locale.ROOT).equals(correctInfo)) {
-                break;
-            }
-
-            //Remove the available words based on the guess and the info
-            wordList = ListModifiers.updateList(guess, info, wordList);
-
-            timesGuessed++;
+            if(game.updateList(driver.getInfo(game.getGuesses()))) break;
         }
     }
 
@@ -155,63 +106,30 @@ public class Main {
         long startTime = System.currentTimeMillis();
 
 
-        List<Character> firstWord = Utils.stringToCharList(originalList.get(0));
-        List<Character> infoList = new ArrayList<>();
-        for(int i = 0; i < firstWord.size(); i++) {
-            infoList.add('g');
-        }
-
-        String correctInfo = Utils.charListToString(infoList);
-
         for(String w : unsortedAnswers) {
-            List<String> wordList = List.copyOf(originalList);
+            List<String> wordListCopy = List.copyOf(originalList);
+            List<String> answersCopy = List.copyOf(unsortedAnswers);
 
-            List<String> sortedAnswers;
-            int guesses = 1;
+            Game game = new Game(wordListCopy, answersCopy, startingGuess);
+
             boolean success = false;
-            boolean useOnlyAnswers = false;
 
-            //Begin with one single starting guess
-            String guess = startingGuess;
-            String info = getInfoFromWord(guess, w);
+            while(game.getGuesses() < 6 && !success) {
 
-            if(info.equals(correctInfo)) success = true;
+                String guess = game.getNextGuess(false);
+                String info;
+                if(guess != null) info = getInfoFromWord(guess, w); //Get the info about the last guess
+                else break;
 
-            //Update the sorted list of words
-            wordList = ListModifiers.updateList(startingGuess, info, wordList);
-
-            while(guesses <= 6 && !success) {
-                guesses++;
-
-                //Re-evaluate the word list to find the word that will give the fewest answers on average
-                wordList = sortWordList(wordList, false);
-
-                //Update the sorted list of answers
-                sortedAnswers = new ArrayList<>();
-                for(String s : wordList) {
-                    if(unsortedAnswers.contains(s)) sortedAnswers.add(s);
-                }
-
-                //Generate and apply the new guess for this attempt
-                if(sortedAnswers.size() > 0) guess = useOnlyAnswers ? sortedAnswers.get(0) :wordList.get(0); //Get the guess based on whether or not we are using only words from the answer set
-                else  {
-                    break;
-                }
-
-                info = getInfoFromWord(guess, w); //Get the info about the last guess
-                useOnlyAnswers = Utils.switchToAnswers(info); //Evaluate the info to see if we should switch to using only answers
-
-                if(info.toLowerCase(Locale.ROOT).equals(correctInfo)) {
-                    success = true;
-                    break;
-                }
+                success = game.updateList(info);
+                if(success) break;
 
                 //Remove the available words based on the guess and the info
-                wordList = ListModifiers.updateList(guess, info, wordList);
+                wordListCopy = ListModifiers.updateList(guess, info, wordListCopy);
 
             }
 
-            GameData thisGame = new GameData(success, guesses, w);
+            GameData thisGame = new GameData(success, game.getGuesses(), w);
 
             if(!success) {
                 failedGames.add(thisGame);
