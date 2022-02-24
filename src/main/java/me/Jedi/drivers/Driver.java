@@ -1,6 +1,6 @@
 package me.Jedi.drivers;
 
-import me.Jedi.utils.Utils;
+import me.Jedi.util.Utils;
 
 import java.util.List;
 

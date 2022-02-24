@@ -3,7 +3,10 @@ package me.Jedi;
 import me.Jedi.drivers.Driver;
 import me.Jedi.drivers.LatinDriver;
 import me.Jedi.drivers.NormalDriver;
-import me.Jedi.utils.*;
+import me.Jedi.scoring.ScoringData;
+import me.Jedi.scoring.ScoringThread;
+import me.Jedi.scoring.WordScoring;
+import me.Jedi.util.*;
 
 import java.io.*;
 
@@ -19,8 +22,8 @@ public class Main {
     static String startingGuess;
     static GameMode activeType;
 
-    //TODO: Multithreaded simulations
     //TODO: Quordle
+    //TODO: Pre-compute word properties
 
     public static void main(String[] args) throws IOException, InterruptedException {
 
@@ -33,15 +36,16 @@ public class Main {
 
         activeType = gameModes.get(wordleType);
 
-        List<String> unsortedWords = activeType.getWords();
-        List<String> unsortedAnswers = activeType.getAnswers();
+
+        List<WordData> unsortedWords = activeType.getWords();
+        List<WordData> unsortedAnswers = activeType.getAnswers();
         startingGuess = activeType.getInitialGuess();
 
         if(doInitialSort) {
-            List<String> sortedList = sortWordList(unsortedWords, true);
+            List<WordData> sortedList = sortWordList(unsortedWords, true);
             System.out.println("Complete sorted list: " + sortedList);
             System.out.println("Identified best word as " + sortedList.get(0));
-            startingGuess = sortedList.get(0);
+            startingGuess = sortedList.get(0).getWord();
         }
 
         if(gameMode == Mode.Manual) {
@@ -57,7 +61,7 @@ public class Main {
         }
     }
 
-    private static void mainGuessingLoop(List<String> wordList, List<String> unsortedAnswers) throws IOException, InterruptedException {
+    private static void mainGuessingLoop(List<WordData> wordList, List<WordData> unsortedAnswers) throws IOException, InterruptedException {
         Game game = new Game(wordList, unsortedAnswers, startingGuess);
 
         BufferedReader inputReader = new BufferedReader(new InputStreamReader(System.in)); //Create a buffered reader to read the inputs
@@ -84,7 +88,7 @@ public class Main {
     }
 
 
-    private static void autoWin(List<String> wordList, List<String> unsortedAnswers) throws InterruptedException {
+    private static void autoWin(List<WordData> wordList, List<WordData> unsortedAnswers) throws InterruptedException {
         Game game = new Game(wordList, unsortedAnswers, startingGuess);
 
         Driver driver = activeType.getDriver();
@@ -104,7 +108,7 @@ public class Main {
         }
     }
 
-    private static void simulateGames(List<String> originalList, List<String> unsortedAnswers) throws InterruptedException {
+    private static void simulateGames(List<WordData> originalList, List<WordData> unsortedAnswers) throws InterruptedException {
         long startTime = System.currentTimeMillis();
 
         List<GameData> games = new ArrayList<>();
@@ -116,7 +120,7 @@ public class Main {
         int wordsPerJump = unsortedAnswers.size() / threadCount;
 
         for (int i = 0; i < threadCount; i++) {
-            List<String> subList;
+            List<WordData> subList;
             //If this is the last thread, go to the end of the list
             if (i + 1 == threadCount) {
                 subList = unsortedAnswers.subList(i * wordsPerJump, unsortedAnswers.size());
@@ -189,13 +193,13 @@ public class Main {
         return value;
     }
 
-    public static List<String> sortWordList(List<String> unsortedWords, boolean showTelemetry) throws InterruptedException { return sortWordList(unsortedWords, showTelemetry, false);}
+    public static List<WordData> sortWordList(List<WordData> unsortedWords, boolean showTelemetry) throws InterruptedException { return sortWordList(unsortedWords, showTelemetry, false);}
 
-    public static List<String> sortWordList(List<String> unsortedWords, boolean showTelemetry, boolean forceSingleThread) throws InterruptedException {
+    public static List<WordData> sortWordList(List<WordData> unsortedWords, boolean showTelemetry, boolean forceSingleThread) throws InterruptedException {
         int wordsPerJump = unsortedWords.size() / threadCount;
 
-        List<WordData> allWordData = new ArrayList<>();
-        List<String> sortedList = new ArrayList<>();
+        List<ScoringData> allWordData = new ArrayList<>();
+        List<WordData> sortedList = new ArrayList<>();
 
         //Decide whether to multi-thread or not
         long startTime = System.currentTimeMillis();
@@ -204,7 +208,7 @@ public class Main {
             List<ScoringThread> threads = new ArrayList<>();
 
             for (int i = 0; i < threadCount; i++) {
-                List<String> subList;
+                List<WordData> subList;
                 //If this is the last thread, go to the end of the list
                 if (i + 1 == threadCount) {
                     subList = unsortedWords.subList(i * wordsPerJump, unsortedWords.size());
@@ -237,13 +241,13 @@ public class Main {
                 allWordData.addAll(t.getSortedList());
             }
 
-            Collections.sort(allWordData, Comparator.comparingDouble(WordData::getScore));
+            Collections.sort(allWordData, Comparator.comparingDouble(ScoringData::getScore));
         } else {
             WordScoring scoring = new WordScoring();
             allWordData = scoring.sortWordList(unsortedWords, unsortedWords, 0);
         }
 
-        for (WordData d : allWordData) {
+        for (ScoringData d : allWordData) {
             sortedList.add(d.getWord());
         }
 

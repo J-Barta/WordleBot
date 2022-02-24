@@ -1,6 +1,6 @@
 package me.Jedi.drivers;
 
-import me.Jedi.utils.Utils;
+import me.Jedi.util.Utils;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;

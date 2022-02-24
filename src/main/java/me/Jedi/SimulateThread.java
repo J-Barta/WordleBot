@@ -1,7 +1,8 @@
 package me.Jedi;
 
-import me.Jedi.utils.ListModifiers;
-import me.Jedi.utils.Utils;
+import me.Jedi.util.ListModifiers;
+import me.Jedi.util.Utils;
+import me.Jedi.util.WordData;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,13 +11,13 @@ public class SimulateThread extends Thread{
     private boolean finished;
     private List<GameData> games = new ArrayList<>();
     private List<GameData> failedGames=  new ArrayList<>();
-    private List<String> gamesToPlay;
-    private List<String> originalList;
-    private List<String> unsortedAnswers;
+    private List<WordData> gamesToPlay;
+    private List<WordData> originalList;
+    private List<WordData> unsortedAnswers;
     private double gamesPlayed;
     private String startingGuess;
 
-    public SimulateThread(List<String> gamesToPlay, List<String> originalList, List<String> unsortedAnswers, String startingGuess)  {
+    public SimulateThread(List<WordData> gamesToPlay, List<WordData> originalList, List<WordData> unsortedAnswers, String startingGuess)  {
         this.gamesToPlay = gamesToPlay;
         this.originalList = originalList;
         this.unsortedAnswers = unsortedAnswers;
@@ -49,9 +50,9 @@ public class SimulateThread extends Thread{
 
     private void simulateGames() throws InterruptedException {
 
-        for(String w : gamesToPlay) {
-            List<String> wordListCopy = List.copyOf(originalList);
-            List<String> answersCopy = List.copyOf(unsortedAnswers);
+        for(WordData w : gamesToPlay) {
+            List<WordData> wordListCopy = List.copyOf(originalList);
+            List<WordData> answersCopy = List.copyOf(unsortedAnswers);
 
             Game game = new Game(wordListCopy, answersCopy, startingGuess);
 
@@ -61,7 +62,7 @@ public class SimulateThread extends Thread{
 
                 String guess = game.getNextGuess(false, true);
                 String info;
-                if(guess != null) info = getInfoFromWord(guess, w); //Get the info about the last guess
+                if(guess != null) info = getInfoFromWord(guess, w.getWord()); //Get the info about the last guess
                 else break;
 
                 success = game.updateList(info);
@@ -71,7 +72,7 @@ public class SimulateThread extends Thread{
                 wordListCopy = ListModifiers.updateList(guess, info, wordListCopy);
             }
 
-            GameData thisGame = new GameData(success, game.getGuesses(), w);
+            GameData thisGame = new GameData(success, game.getGuesses(), w.getWord());
 
             if(!success) {
                 failedGames.add(thisGame);

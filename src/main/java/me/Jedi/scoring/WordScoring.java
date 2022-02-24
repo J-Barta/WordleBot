@@ -1,6 +1,10 @@
-package me.Jedi.utils;
+package me.Jedi.scoring;
 
-import java.io.CharArrayReader;
+import me.Jedi.util.Letters;
+import me.Jedi.util.ListModifiers;
+import me.Jedi.util.Utils;
+import me.Jedi.util.WordData;
+
 import java.util.*;
 
 public class WordScoring {
@@ -8,17 +12,17 @@ public class WordScoring {
 
     public WordScoring() {}
 
-    public List<WordData> sortWordList(List<String> unsortedList, List<String> fullList, int id) {
-        List<WordData> wordsWithWeight = new ArrayList<>();
+    public List<ScoringData> sortWordList(List<WordData> unsortedList, List<WordData> fullList, int id) {
+        List<ScoringData> wordsWithWeight = new ArrayList<>();
 
         //Evaluate the score of each word
-        for(String s : unsortedList) {
-            wordsWithWeight.add(new WordData(s, evaluateWord(s, fullList)));
+        for(WordData s : unsortedList) {
+            wordsWithWeight.add(new ScoringData(s, evaluateWord(s.getWord(), fullList)));
             totalSearched++;
         }
 
         //Sort the words by weight
-        Collections.sort(wordsWithWeight, Comparator.comparingDouble(WordData::getScore));
+        Collections.sort(wordsWithWeight, Comparator.comparingDouble(ScoringData::getScore));
 //        Collections.reverse(wordsWithWeight);
         return wordsWithWeight;
     }
@@ -29,7 +33,7 @@ public class WordScoring {
      * @param unsortedList
      * @return expected value
      */
-    public static double evaluateWord(String word, List<String> unsortedList) {
+    public static double evaluateWord(String word, List<WordData> unsortedList) {
         List<Character> charList = Utils.stringToCharList(word);
         //Generate a list equal to the length of the word with all "n"
         List<Character> info = getInitialList(charList);

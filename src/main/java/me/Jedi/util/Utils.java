@@ -1,4 +1,4 @@
-package me.Jedi.utils;
+package me.Jedi.util;
 
 import java.util.ArrayList;
 import java.util.List;

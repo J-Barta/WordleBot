@@ -1,4 +1,4 @@
-package me.Jedi.utils;
+package me.Jedi.util;
 
 import me.Jedi.drivers.Driver;
 
@@ -7,8 +7,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class GameMode {
-    private List<String> words;
-    private List<String> answers;
+    private List<WordData> words;
+    private List<WordData> answers;
     String initialGuess;
     private Driver driver;
 
@@ -27,11 +27,11 @@ public class GameMode {
         this.driver = driver;
 
         while((st = guessesReader.readLine()) != null) {
-            words.add(st);
+            words.add(new WordData(st));
         }
 
         while((st = answersReader.readLine()) != null) {
-            answers.add(st);
+            answers.add(new WordData(st));
         }
 
         //Add any answers that are not in the guesses list already
@@ -49,11 +49,9 @@ public class GameMode {
     }
 
 
-    public List<String> getWords() {
-        return words;
-    }
+    public List<WordData> getWords() {return words;}
 
-    public List<String> getAnswers() {
+    public List<WordData> getAnswers() {
         return answers;
     }
 

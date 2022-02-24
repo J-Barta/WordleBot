@@ -1,23 +1,22 @@
-package me.Jedi;
+package me.Jedi.scoring;
 
-import me.Jedi.utils.WordData;
-import me.Jedi.utils.WordScoring;
+import me.Jedi.util.WordData;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class ScoringThread extends Thread{
-    List<String> toSort;
-    List<String> fullList;
+    List<WordData> toSort;
+    List<WordData> fullList;
     int id;
 
-    List<WordData> wordsWithData = new ArrayList<>();
+    List<ScoringData> wordsWithData = new ArrayList<>();
 
     private boolean finished = false;
 
     WordScoring scoring;
 
-    public ScoringThread(List<String> toSort, List<String> fullList, int id) {
+    public ScoringThread(List<WordData> toSort, List<WordData> fullList, int id) {
         super();
         this.toSort = toSort;
         this.fullList = fullList;
@@ -44,7 +43,7 @@ public class ScoringThread extends Thread{
         return scoring.totalSearched;
     }
 
-    public List<WordData> getSortedList() {
+    public List<ScoringData> getSortedList() {
         return wordsWithData;
     }
 }

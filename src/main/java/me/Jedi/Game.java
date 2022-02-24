@@ -1,14 +1,15 @@
 package me.Jedi;
 
-import me.Jedi.utils.ListModifiers;
-import me.Jedi.utils.Utils;
+import me.Jedi.util.ListModifiers;
+import me.Jedi.util.Utils;
+import me.Jedi.util.WordData;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class Game {
-    private List<String> wordList;
-    private List<String> unsortedAnswers;
+    private List<WordData> wordList;
+    private List<WordData> unsortedAnswers;
     private String firstGuess;
     private int guesses;
     private boolean useOnlyAnswers;
@@ -17,7 +18,7 @@ public class Game {
 
     private String currentGuess = "";
 
-    public Game(List<String> originalList, List<String> unsortedAnswers, String firstGuess)   {
+    public Game(List<WordData> originalList, List<WordData> unsortedAnswers, String firstGuess)   {
         this.wordList = originalList;
         this.unsortedAnswers = unsortedAnswers;
         this.firstGuess = firstGuess;
@@ -26,7 +27,7 @@ public class Game {
         useOnlyAnswers = false;
         forceNotAnswers = false;
 
-        List<Character> firstWord = Utils.stringToCharList(unsortedAnswers.get(0));
+        List<Character> firstWord = unsortedAnswers.get(0).getLetters();
         List<Character> infoList = new ArrayList<>();
         for(int i = 0; i < firstWord.size(); i++) {
             infoList.add('g');
@@ -49,10 +50,10 @@ public class Game {
             if (useOnlyAnswers)  {
                 int i =0;
                 while(!unsortedAnswers.contains(wordList.get(i))) i++;
-                return currentGuess = wordList.get(i);
+                return currentGuess = wordList.get(i).getWord();
             }
 
-            else currentGuess = wordList.get(0);
+            else currentGuess = wordList.get(0).getWord();
         }
 
         return currentGuess;
@@ -82,7 +83,7 @@ public class Game {
         }
     }
 
-    public List<String> getRemainingValidWords() {
+    public List<WordData> getRemainingValidWords() {
         return wordList;
     }
 

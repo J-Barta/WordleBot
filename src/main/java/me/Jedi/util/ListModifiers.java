@@ -1,4 +1,4 @@
-package me.Jedi.utils;
+package me.Jedi.util;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -12,8 +12,8 @@ public class ListModifiers {
      * @param words
      * @return
      */
-    public static List<String> updateList(String guess, String info, List<String> words) {
-        List<String> correctedWords = words;
+    public static List<WordData> updateList(String guess, String info, List<WordData> words) {
+        List<WordData> correctedWords = words;
         List<Character> guessCharList = Utils.stringToCharList(guess);
         List<Character> infoList = Utils.stringToCharList(info);
         for(int i = 0; i<info.length(); i++) {
@@ -64,10 +64,10 @@ public class ListModifiers {
      * @param words the list of words
      * @return the fixed list
      */
-    public static List<String> removeLetter(Character letter, List<String> words) {
-        List<String> correctedList = new ArrayList<>();
-        for(String s : words) {
-            if(!(s.indexOf(letter) != -1)) correctedList.add(s);
+    public static List<WordData> removeLetter(Character letter, List<WordData> words) {
+        List<WordData> correctedList = new ArrayList<>();
+        for(WordData w : words) {
+            if(!(w.getLetters().contains(letter))) correctedList.add(w);
         }
 
         return correctedList;
@@ -80,11 +80,11 @@ public class ListModifiers {
      * @param words the current list of words
      * @return the only remaining words that have the specified letter
      */
-    public static List<String> removeWordsWithoutLetter(Character letter, List<String> words) {
-        List<String> correctedList = new ArrayList<>();
+    public static List<WordData> removeWordsWithoutLetter(Character letter, List<WordData> words) {
+        List<WordData> correctedList = new ArrayList<>();
 
-        for(String s : words) {
-            if(s.indexOf(letter) != -1) correctedList.add(s);
+        for(WordData w : words) {
+            if(w.getLetters().contains(letter)) correctedList.add(w);
         }
 
         return correctedList;
@@ -97,22 +97,13 @@ public class ListModifiers {
      * @param words
      * @return
      */
-    public static List<String> removeWordsWithLetterAtIndex(Character c, Integer index, List<String> words) {
+    public static List<WordData> removeWordsWithLetterAtIndex(Character c, Integer index, List<WordData> words) {
 
         //TOOD: Support duplicate letters in a word
-        List<String> correctedList = new ArrayList<>();
+        List<WordData> correctedList = new ArrayList<>();
 
-        for(String s : words) {
-            int lowerBound = 0;
-            boolean shouldRemove = false;
-            while(s.indexOf(c, lowerBound) != -1) {
-                if(s.indexOf(c, lowerBound) == index) {
-                    shouldRemove = true;
-                }
-
-                lowerBound = s.indexOf(c, lowerBound) + 1;
-            }
-            if(!shouldRemove) correctedList.add(s);
+        for(WordData w : words) {
+            if(!w.getLetters().get(index).equals(c)) correctedList.add(w);
         }
 
         return correctedList;
@@ -125,32 +116,23 @@ public class ListModifiers {
      * @param words
      * @return
      */
-    public static List<String> removeWordsWithoutLetterAtIndex(Character c, Integer index, List<String> words) {
+    public static List<WordData> removeWordsWithoutLetterAtIndex(Character c, Integer index, List<WordData> words) {
         //TOOD: Support duplicate letters in a word
-        List<String> correctedList = new ArrayList<>();
+        List<WordData> correctedList = new ArrayList<>();
 
-        for(String s : words) {
-            int lowerBound = 0;
-            while(s.indexOf(c, lowerBound) != -1) {
-                if (s.indexOf(c, lowerBound) == index) {
-                    correctedList.add(s);
-                    break;
-                } else {
-                    lowerBound = s.indexOf(c, lowerBound) + 1;
-                }
-            }
+        for(WordData w : words) {
+            if(w.getLetters().get(index).equals(c)) correctedList.add(w);
+
         }
 
         return correctedList;
     }
 
-    public static List<String> removeWordsWithDupedChar(Character c, List<String> words, int dupeCount) {
-        List<String> correctedList = new ArrayList<>();
+    public static List<WordData> removeWordsWithDupedChar(Character c, List<WordData> words, int dupeCount) {
+        List<WordData> correctedList = new ArrayList<>();
 
-        for(String s : words) {
-            List<Character> charList = Utils.stringToCharList(s);
-
-            if(instancesOf(c, charList) < dupeCount) correctedList.add(s);
+        for(WordData w : words) {
+            if(instancesOf(c, w.getLetters()) < dupeCount) correctedList.add(w);
         }
 
         return correctedList;

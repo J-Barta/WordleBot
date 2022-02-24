@@ -1,6 +1,5 @@
-package me.Jedi.utils;
+package me.Jedi.util;
 
-import java.util.HashMap;
 import java.util.Map;
 
 public class Letters {
