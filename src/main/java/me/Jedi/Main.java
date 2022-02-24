@@ -1,5 +1,8 @@
 package me.Jedi;
 
+import me.Jedi.drivers.Driver;
+import me.Jedi.drivers.LatinDriver;
+import me.Jedi.drivers.NormalDriver;
 import me.Jedi.utils.*;
 
 import java.io.*;
@@ -8,24 +11,24 @@ import java.util.*;
 
 
 public class Main {
-    static int threadCount = 12; //The number of threads
+    static int threadCount = 1; //The number of threads
 
-    static final Mode gameMode = Mode.Automatic;
-    static final WordleTypes wordleType = WordleTypes.Wordle6;
+    static final Mode gameMode = Mode.Simulate;
+    static final WordleTypes wordleType = WordleTypes.Wordle;
     static final boolean doInitialSort = false;
     static String startingGuess;
     static GameMode activeType;
 
     //TODO: Multithreaded simulations
     //TODO: Quordle
-    //TODO: Correct guessing bug (exapmle found in word "other")
 
     public static void main(String[] args) throws IOException, InterruptedException {
 
         Map<WordleTypes, GameMode> gameModes = Map.ofEntries(
-            Map.entry(WordleTypes.Wordle, new GameMode("guesses", "answers", "tares", "https://www.nytimes.com/games/wordle/index.html")),
-            Map.entry(WordleTypes.Wordle6, new GameMode("guesses2", "answers2", "saline", "https://www.wordle2.in")),
-            Map.entry(WordleTypes.Absurdle, new GameMode("guesses", "answers", "cocco", ""))
+            Map.entry(WordleTypes.Wordle, new GameMode("guesses", "answers", "tares", new NormalDriver("https://www.nytimes.com/games/wordle/index.html"))),
+            Map.entry(WordleTypes.Wordle6, new GameMode("guesses2", "answers2", "saline", new NormalDriver("https://www.wordle2.in"))),
+            Map.entry(WordleTypes.Absurdle, new GameMode("guesses", "answers", "cocco", new NormalDriver(""))),
+            Map.entry(WordleTypes.WordleLatin, new GameMode("guesses-latin", "answers-latin", "senia", new LatinDriver("https://wordle.latindictionary.io")))
         );
 
         activeType = gameModes.get(wordleType);
@@ -40,7 +43,6 @@ public class Main {
             System.out.println("Identified best word as " + sortedList.get(0));
             startingGuess = sortedList.get(0);
         }
-
 
         if(gameMode == Mode.Manual) {
             //Normal game loop
@@ -62,7 +64,8 @@ public class Main {
 
         if(wordleType == WordleTypes.Absurdle) game.forceNotAnswers();
 
-        //We only get 6 guesses and we've already guessed once
+
+        //We only get 6 guesses, and we've already guessed once
         while(game.getGuesses() < 6 || wordleType == WordleTypes.Absurdle) {
 
             String modeOutput = !game.isUseOnlyAnswers() ? "all words" : "answers only";
@@ -84,14 +87,16 @@ public class Main {
     private static void autoWin(List<String> wordList, List<String> unsortedAnswers) throws InterruptedException {
         Game game = new Game(wordList, unsortedAnswers, startingGuess);
 
-        HTMLDriver driver = new HTMLDriver(activeType.getUrl());
+        Driver driver = activeType.getDriver();
+
+        driver.open();
 
         if(wordleType == WordleTypes.Absurdle) game.forceNotAnswers();
 
-        //We only get 6 guesses and we've already guessed once
+        //We only get 6 guesses, and we've already guessed once
         while(game.getGuesses() < 6 || wordleType == WordleTypes.Absurdle) {
 
-            String guess = game.getNextGuess(); //Get the guess based on whether or not we are using only words from the answer set
+            String guess = game.getNextGuess(); //Get the guess based on whether we are using only words from the answer set
             Thread.sleep(1000);
             driver.typeWord(guess);
 
@@ -100,52 +105,53 @@ public class Main {
     }
 
     private static void simulateGames(List<String> originalList, List<String> unsortedAnswers) throws InterruptedException {
-        List<GameData> games = new ArrayList<>();
-        List<GameData> failedGames = new ArrayList<>();
-        System.out.println("Starting simulations");
         long startTime = System.currentTimeMillis();
 
+        List<GameData> games = new ArrayList<>();
+        List<GameData> failedGames = new ArrayList<>();
 
-        for(String w : unsortedAnswers) {
-            List<String> wordListCopy = List.copyOf(originalList);
-            List<String> answersCopy = List.copyOf(unsortedAnswers);
+        System.out.println("Starting simulations");
 
-            Game game = new Game(wordListCopy, answersCopy, startingGuess);
+        List<SimulateThread> threads = new ArrayList<>();
+        int wordsPerJump = unsortedAnswers.size() / threadCount;
 
-            boolean success = false;
-
-            while(game.getGuesses() < 6 && !success) {
-
-                String guess = game.getNextGuess(false);
-                String info;
-                if(guess != null) info = getInfoFromWord(guess, w); //Get the info about the last guess
-                else break;
-
-                success = game.updateList(info);
-                if(success) break;
-
-                //Remove the available words based on the guess and the info
-                wordListCopy = ListModifiers.updateList(guess, info, wordListCopy);
-
+        for (int i = 0; i < threadCount; i++) {
+            List<String> subList;
+            //If this is the last thread, go to the end of the list
+            if (i + 1 == threadCount) {
+                subList = unsortedAnswers.subList(i * wordsPerJump, unsortedAnswers.size());
+            } else {
+                subList = unsortedAnswers.subList(i * wordsPerJump, (i + 1) * wordsPerJump);
             }
 
-            GameData thisGame = new GameData(success, game.getGuesses(), w);
+            threads.add(new SimulateThread(subList, originalList, unsortedAnswers, startingGuess));
 
-            if(!success) {
-                failedGames.add(thisGame);
-            }
-
-            games.add(thisGame);
-
-            //Output how far through we are with nice pretty formatting
-            System.out.print("\r");
-
-            double fractionComplete = ((double) unsortedAnswers.indexOf(w) + 1) / unsortedAnswers.size();
-
-            double percentage = truncatePercentage(fractionComplete * 100, 2);
-
-            System.out.print("Percent complete: " + percentage + "%");
+            threads.get(i).start();
         }
+
+        boolean allFinished = false;
+
+        while (!allFinished) {
+            allFinished = true;
+            int totalScored = 0;
+            for (SimulateThread t : threads) {
+                if (!t.isFinished()) allFinished = false;
+
+                totalScored += t.getGamesPlayed();
+            }
+
+            double percentage = truncatePercentage(((double) totalScored / originalList.size()) * 100, 2);
+
+            System.out.print("\rPercent complete: " + percentage + "%");
+
+            Thread.sleep(50);
+        }
+
+        for (SimulateThread t : threads) {
+            games.addAll(t.getGameData());
+            failedGames.addAll(t.getFailedGames());
+        }
+
         System.out.println("");
 
         double totalGuesses = 0;
@@ -173,8 +179,8 @@ public class Main {
         System.out.println("Took a total of " + (runTime / 1000.0) + " seconds with an average of " + ((double) games.size() / (runTime / 1000.0)) + " games per second.");
     }
 
-    private static double truncatePercentage(double fracitonComplete, double decimalPlaces) {
-        double value = fracitonComplete;
+    private static double truncatePercentage(double fractionComplete, double decimalPlaces) {
+        double value = fractionComplete;
 
         value = value * Math.pow(10, decimalPlaces);
         value = Math.floor(value);
@@ -183,45 +189,15 @@ public class Main {
         return value;
     }
 
-    private static String getInfoFromWord(String guess, String answer) {
-        List<Character> answerList = Utils.stringToCharList(answer);
+    public static List<String> sortWordList(List<String> unsortedWords, boolean showTelemetry) throws InterruptedException { return sortWordList(unsortedWords, showTelemetry, false);}
 
-        List<Character> infoList = new ArrayList<>();
-
-        for(int i = 0; i<guess.length(); i++) {
-            Character c = guess.charAt(i);
-            if(!answerList.contains(c)) infoList.add('n');
-            else {
-                if(rightIndex(c,i, answer)) {
-                    infoList.add('g');
-                } else {
-                    infoList.add('y');
-                }
-            }
-        }
-
-        return Utils.charListToString(infoList);
-    }
-
-    private static boolean rightIndex(Character c, Integer index, String answer) {
-        int lowerBound = 0;
-        while(answer.indexOf(c, lowerBound) != -1) {
-            if(answer.indexOf(c, lowerBound) == index) return true;
-            lowerBound = answer.indexOf(c, lowerBound) + 1;
-        }
-
-        return false;
-    }
-
-    public static List<String> sortWordList(List<String> usnortedWords, boolean showTelemetry) throws InterruptedException { return sortWordList(usnortedWords, showTelemetry, false);}
-
-    private static List<String> sortWordList(List<String> unsortedWords, boolean showTelemetry, boolean forceSingleThread) throws InterruptedException {
+    public static List<String> sortWordList(List<String> unsortedWords, boolean showTelemetry, boolean forceSingleThread) throws InterruptedException {
         int wordsPerJump = unsortedWords.size() / threadCount;
 
         List<WordData> allWordData = new ArrayList<>();
         List<String> sortedList = new ArrayList<>();
 
-        //Decide whether to multithread or not
+        //Decide whether to multi-thread or not
         long startTime = System.currentTimeMillis();
         if(unsortedWords.size() > 50 && !forceSingleThread) {
 
@@ -283,7 +259,7 @@ public class Main {
     }
 
     public enum WordleTypes {
-        Wordle, Wordle6, Absurdle
+        Wordle, Wordle6, Absurdle, WordleLatin
     }
 
     public enum Mode {

@@ -35,14 +35,14 @@ public class Game {
         correctInfo = Utils.charListToString(infoList);
     }
 
-    public String getNextGuess(boolean showTelemetry) throws InterruptedException {
+    public String getNextGuess(boolean showTelemetry, boolean forceSingleThread) throws InterruptedException {
         guesses ++;
 
         if(guesses == 1) currentGuess =  firstGuess;
         else {
             if (forceNotAnswers) useOnlyAnswers = false;
 
-            wordList = Main.sortWordList(wordList, showTelemetry);
+            wordList = Main.sortWordList(wordList, showTelemetry, forceSingleThread);
 
             if(wordList.size() == 0) return null;
 
@@ -56,6 +56,10 @@ public class Game {
         }
 
         return currentGuess;
+    }
+
+    public String getNextGuess(boolean showTelemetry) throws InterruptedException {
+        return getNextGuess(showTelemetry, false);
     }
 
     public String getNextGuess() throws InterruptedException {

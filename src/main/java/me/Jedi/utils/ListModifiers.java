@@ -53,6 +53,7 @@ public class ListModifiers {
                 correctedWords = removeWordsWithLetterAtIndex(guessCharList.get(i), i, correctedWords);
                 correctedWords = removeWordsWithDupedChar(guessCharList.get(i), correctedWords, checkMap.size());
             }
+
         }
         return correctedWords;
     }

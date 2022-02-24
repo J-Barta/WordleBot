@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ScoringThread extends Thread{
-     List<String> toSort;
+    List<String> toSort;
     List<String> fullList;
     int id;
 

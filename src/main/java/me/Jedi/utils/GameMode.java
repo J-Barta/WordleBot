@@ -1,5 +1,7 @@
 package me.Jedi.utils;
 
+import me.Jedi.drivers.Driver;
+
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -8,9 +10,9 @@ public class GameMode {
     private List<String> words;
     private List<String> answers;
     String initialGuess;
-    private String url;
+    private Driver driver;
 
-    public GameMode(String wordFile, String answerFile, String initialGuess, String url) throws IOException {
+    public GameMode(String wordFile, String answerFile, String initialGuess, Driver driver) throws IOException {
 
         InputStream guesses = this.getClass().getClassLoader().getResourceAsStream(wordFile + ".txt");
         InputStream solutions = this.getClass().getClassLoader().getResourceAsStream(answerFile + ".txt");
@@ -22,7 +24,7 @@ public class GameMode {
 
         this.words = new ArrayList<>();
         this.answers = new ArrayList<>();
-        this.url = url;
+        this.driver = driver;
 
         while((st = guessesReader.readLine()) != null) {
             words.add(st);
@@ -33,8 +35,10 @@ public class GameMode {
         }
 
         //Add any answers that are not in the guesses list already
-        for(int i = 0; i< answers.size(); i++) {
-            if(!words.contains(answers.get(i))) words.add(answers.get(i));
+        for(int i = 0; i < answers.size(); i++) {
+            if(!words.contains(answers.get(i)))  {
+                words.add(answers.get(i));
+            }
         }
 
         this.initialGuess = initialGuess;
@@ -53,8 +57,8 @@ public class GameMode {
         return answers;
     }
 
-    public String getUrl() {
-        return  url;
+    public Driver getDriver() {
+        return driver;
     }
 
 

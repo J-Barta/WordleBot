@@ -1,31 +1,38 @@
-package me.Jedi.utils;
+package me.Jedi.drivers;
 
+import me.Jedi.utils.Utils;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 
-import javax.swing.text.html.HTML;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-public class HTMLDriver {
+public class NormalDriver extends Driver{
 
     private WebDriver driver;
     private JavascriptExecutor js;
     private Map<Letter, WebElement> keyboardMap;
+    private String url;
 
-    public HTMLDriver(String url) {
+    public NormalDriver(String url) {
+        this.url = url;
+    }
+
+    @Override
+    public void open() {
         System.setProperty("webdriver.chrome.driver", "C:\\Program Files\\WordleBot\\chromedriver.exe");
         WebDriver driver = new ChromeDriver();
-        driver.get(url);
         driver.manage().timeouts().implicitlyWait(5, TimeUnit.SECONDS);
 
         js =  (JavascriptExecutor) driver;
+
+        driver.get(url);
 
         WebElement closeIntro = (WebElement) js.executeScript("return document.querySelector(\"body > game-app\").shadowRoot.querySelector(\"#game > game-modal\").shadowRoot.querySelector(\"div > div > div > game-icon\").shadowRoot.querySelector(\"svg\")");
         closeIntro.click();
@@ -44,16 +51,7 @@ public class HTMLDriver {
         }
     }
 
-    public void typeWord(String word) {
-        List<Character> chars = Utils.stringToCharList(word);
-
-        for(Character c : chars) {
-            pressKey(c);
-        }
-
-        pressEnter();
-    }
-
+    @Override
     public String getInfo(int guess) throws InterruptedException {
         Thread.sleep(1000);
 
@@ -78,15 +76,13 @@ public class HTMLDriver {
         return Utils.charListToString(info);
     }
 
-    public void close() {
-        this.driver.close();
-    }
-
-    private void pressKey(Character c) {
+    @Override
+    protected void pressKey(Character c) {
         keyboardMap.get(Letter.valueOf(c.toString().toUpperCase())).click();
     }
 
-    private void pressEnter() {
+    @Override
+    protected void pressEnter() {
         keyboardMap.get(Letter.ENTER).click();
     }
 
