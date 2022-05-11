@@ -6,6 +6,7 @@ import me.Jedi.util.WordData;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class SimulateThread extends Thread{
     private boolean finished;
@@ -16,13 +17,15 @@ public class SimulateThread extends Thread{
     private List<WordData> unsortedAnswers;
     private double gamesPlayed;
     private String startingGuess;
+    private Map<me.Jedi.scoring.WordProperties.LetterProperty, List<WordData>> wordProperties;
 
-    public SimulateThread(List<WordData> gamesToPlay, List<WordData> originalList, List<WordData> unsortedAnswers, String startingGuess)  {
+    public SimulateThread(List<WordData> gamesToPlay, List<WordData> originalList, List<WordData> unsortedAnswers, String startingGuess, Map<me.Jedi.scoring.WordProperties.LetterProperty, List<WordData>> wordProperties)  {
         this.gamesToPlay = gamesToPlay;
         this.originalList = originalList;
         this.unsortedAnswers = unsortedAnswers;
         this.gamesPlayed = 0;
         this.startingGuess = startingGuess;
+        this.wordProperties = wordProperties;
     }
 
     @Override
@@ -60,7 +63,7 @@ public class SimulateThread extends Thread{
 
             while(game.getGuesses() < 6 && !success) {
 
-                String guess = game.getNextGuess(false, true);
+                String guess = game.getNextGuess(false);
                 String info;
                 if(guess != null) info = getInfoFromWord(guess, w.getWord()); //Get the info about the last guess
                 else break;
@@ -68,8 +71,8 @@ public class SimulateThread extends Thread{
                 success = game.updateList(info);
                 if(success) break;
 
-                //Remove the available words based on the guess and the info
-                wordListCopy = ListModifiers.updateList(guess, info, wordListCopy);
+//                Remove the available words based on the guess and the info
+//                wordListCopy = ListModifiers.updateList(guess, info, wordListCopy, wordProperties);
             }
 
             GameData thisGame = new GameData(success, game.getGuesses(), w.getWord());

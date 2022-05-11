@@ -3,9 +3,8 @@ package me.Jedi;
 import me.Jedi.drivers.Driver;
 import me.Jedi.drivers.LatinDriver;
 import me.Jedi.drivers.NormalDriver;
-import me.Jedi.scoring.ScoringData;
-import me.Jedi.scoring.ScoringThread;
-import me.Jedi.scoring.WordScoring;
+import me.Jedi.drivers.WordleGamesDriver;
+import me.Jedi.scoring.*;
 import me.Jedi.util.*;
 
 import java.io.*;
@@ -14,24 +13,32 @@ import java.util.*;
 
 
 public class Main {
-    static int threadCount = 1; //The number of threads
+    public static int threadCount = 100; //The number of threads
 
-    static final Mode gameMode = Mode.Simulate;
-    static final WordleTypes wordleType = WordleTypes.Wordle;
+    public static final Mode gameMode = Mode.Manual;
+    public static final WordleTypes wordleType = WordleTypes.Wordle;
     static final boolean doInitialSort = false;
+    public static final int numberOfLetters = 5;
     static String startingGuess;
     static GameMode activeType;
+    public static Map<me.Jedi.scoring.WordProperties.LetterProperty, List<WordData>> wordProperties;
 
     //TODO: Quordle
+    //TODO: Wordle unlimited
     //TODO: Pre-compute word properties
+    //TODO: make wordProperties static and public so it can be accessed. I think that would work better idk tho
 
     public static void main(String[] args) throws IOException, InterruptedException {
+        System.out.println((-1 % 6));
+        
+        GameMode wordleGames = new GameMode("all-words\\empty-list", "all-words\\words-" + numberOfLetters, "aasldfjas", new WordleGamesDriver(numberOfLetters));
 
         Map<WordleTypes, GameMode> gameModes = Map.ofEntries(
             Map.entry(WordleTypes.Wordle, new GameMode("guesses", "answers", "tares", new NormalDriver("https://www.nytimes.com/games/wordle/index.html"))),
             Map.entry(WordleTypes.Wordle6, new GameMode("guesses2", "answers2", "saline", new NormalDriver("https://www.wordle2.in"))),
             Map.entry(WordleTypes.Absurdle, new GameMode("guesses", "answers", "cocco", new NormalDriver(""))),
-            Map.entry(WordleTypes.WordleLatin, new GameMode("guesses-latin", "answers-latin", "senia", new LatinDriver("https://wordle.latindictionary.io")))
+            Map.entry(WordleTypes.WordleLatin, new GameMode("guesses-latin", "answers-latin", "senia", new LatinDriver("https://wordle.latindictionary.io"))),
+            Map.entry(WordleTypes.WordleGames, wordleGames)
         );
 
         activeType = gameModes.get(wordleType);
@@ -43,10 +50,12 @@ public class Main {
 
         if(doInitialSort) {
             List<WordData> sortedList = sortWordList(unsortedWords, true);
-            System.out.println("Complete sorted list: " + sortedList);
+//            System.out.println("Complete sorted list: " + sortedList);
             System.out.println("Identified best word as " + sortedList.get(0));
             startingGuess = sortedList.get(0).getWord();
         }
+
+        wordProperties = WordProperties.getWordProperties(unsortedWords);
 
         if(gameMode == Mode.Manual) {
             //Normal game loop
@@ -89,6 +98,7 @@ public class Main {
 
 
     private static void autoWin(List<WordData> wordList, List<WordData> unsortedAnswers) throws InterruptedException {
+
         Game game = new Game(wordList, unsortedAnswers, startingGuess);
 
         Driver driver = activeType.getDriver();
@@ -128,7 +138,7 @@ public class Main {
                 subList = unsortedAnswers.subList(i * wordsPerJump, (i + 1) * wordsPerJump);
             }
 
-            threads.add(new SimulateThread(subList, originalList, unsortedAnswers, startingGuess));
+            threads.add(new SimulateThread(subList, originalList, unsortedAnswers, startingGuess, wordProperties));
 
             threads.get(i).start();
         }
@@ -193,77 +203,10 @@ public class Main {
         return value;
     }
 
-    public static List<WordData> sortWordList(List<WordData> unsortedWords, boolean showTelemetry) throws InterruptedException { return sortWordList(unsortedWords, showTelemetry, false);}
-
-    public static List<WordData> sortWordList(List<WordData> unsortedWords, boolean showTelemetry, boolean forceSingleThread) throws InterruptedException {
-        int wordsPerJump = unsortedWords.size() / threadCount;
-
-        List<ScoringData> allWordData = new ArrayList<>();
-        List<WordData> sortedList = new ArrayList<>();
-
-        //Decide whether to multi-thread or not
-        long startTime = System.currentTimeMillis();
-        if(unsortedWords.size() > 50 && !forceSingleThread) {
-
-            List<ScoringThread> threads = new ArrayList<>();
-
-            for (int i = 0; i < threadCount; i++) {
-                List<WordData> subList;
-                //If this is the last thread, go to the end of the list
-                if (i + 1 == threadCount) {
-                    subList = unsortedWords.subList(i * wordsPerJump, unsortedWords.size());
-                } else {
-                    subList = unsortedWords.subList(i * wordsPerJump, (i + 1) * wordsPerJump);
-                }
-
-                threads.add(new ScoringThread(subList, unsortedWords, i));
-
-                threads.get(i).start();
-            }
-
-            boolean allFinished = false;
-            if(showTelemetry) System.out.println();
-            while (!allFinished) {
-                allFinished = true;
-                int totalScored = 0;
-                for (ScoringThread t : threads) {
-                    if (!t.isFinished()) allFinished = false;
-
-                    totalScored += t.wordsSearched();
-                }
-
-                if(showTelemetry) System.out.print("\rProgress: " + totalScored + "/" + unsortedWords.size() + " words searched.");
-
-                Thread.sleep(50);
-            }
-
-            for (ScoringThread t : threads) {
-                allWordData.addAll(t.getSortedList());
-            }
-
-            Collections.sort(allWordData, Comparator.comparingDouble(ScoringData::getScore));
-        } else {
-            WordScoring scoring = new WordScoring();
-            allWordData = scoring.sortWordList(unsortedWords, unsortedWords, 0);
-        }
-
-        for (ScoringData d : allWordData) {
-            sortedList.add(d.getWord());
-        }
-
-        if(wordleType == WordleTypes.Absurdle) Collections.reverse(sortedList);
-
-        long endTime = System.currentTimeMillis();
-        long runTime = endTime - startTime;
-
-        if(showTelemetry) System.out.println();
-        if(showTelemetry) System.out.println("Completed scoring " + sortedList.size() + " words. It took " + (runTime/1000.0) + " seconds. Speed: " + ((double) sortedList.size()) / (runTime/1000.0) + " words per second");
-
-        return sortedList;
-    }
+    public static List<WordData> sortWordList(List<WordData> unsortedWords, boolean showTelemetry) throws InterruptedException { return Sorting.sortWordList(unsortedWords, showTelemetry, false);}
 
     public enum WordleTypes {
-        Wordle, Wordle6, Absurdle, WordleLatin
+        Wordle, Wordle6, Absurdle, WordleLatin, WordleGames
     }
 
     public enum Mode {

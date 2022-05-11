@@ -1,5 +1,6 @@
 package me.Jedi.scoring;
 
+import me.Jedi.drivers.LatinDriver;
 import me.Jedi.util.Letters;
 import me.Jedi.util.ListModifiers;
 import me.Jedi.util.Utils;
@@ -12,7 +13,7 @@ public class WordScoring {
 
     public WordScoring() {}
 
-    public List<ScoringData> sortWordList(List<WordData> unsortedList, List<WordData> fullList, int id) {
+    public List<ScoringData> sortWordList(List<WordData> unsortedList, List<WordData> fullList) {
         List<ScoringData> wordsWithWeight = new ArrayList<>();
 
         //Evaluate the score of each word

@@ -1,9 +1,11 @@
 package me.Jedi.scoring;
 
+import me.Jedi.drivers.LatinDriver;
 import me.Jedi.util.WordData;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class ScoringThread extends Thread{
     List<WordData> toSort;
@@ -16,6 +18,7 @@ public class ScoringThread extends Thread{
 
     WordScoring scoring;
 
+
     public ScoringThread(List<WordData> toSort, List<WordData> fullList, int id) {
         super();
         this.toSort = toSort;
@@ -27,7 +30,7 @@ public class ScoringThread extends Thread{
     @Override
     public void run() {
         try {
-            wordsWithData = scoring.sortWordList(toSort, fullList, id);
+            wordsWithData = scoring.sortWordList(toSort, fullList);
             finished = true;
         }
         catch (Exception e) {

@@ -1,5 +1,6 @@
 package me.Jedi;
 
+import me.Jedi.scoring.Sorting;
 import me.Jedi.util.ListModifiers;
 import me.Jedi.util.Utils;
 import me.Jedi.util.WordData;
@@ -43,7 +44,7 @@ public class Game {
         else {
             if (forceNotAnswers) useOnlyAnswers = false;
 
-            wordList = Main.sortWordList(wordList, showTelemetry, forceSingleThread);
+            wordList = Sorting.sortWordList(wordList, showTelemetry, forceSingleThread);
 
             if(wordList.size() == 0) return null;
 

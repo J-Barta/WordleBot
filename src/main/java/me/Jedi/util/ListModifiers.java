@@ -1,9 +1,8 @@
 package me.Jedi.util;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import me.Jedi.Main;
+
+import java.util.*;
 
 public class ListModifiers {
     /**
@@ -69,6 +68,16 @@ public class ListModifiers {
         for(WordData w : words) {
             if(!(w.getLetters().contains(letter))) correctedList.add(w);
         }
+//
+//        List<WordData> propertyList = Main.wordProperties.get(me.Jedi.scoring.WordProperties.LetterProperty.valueOf("I" + letter));
+////        for(int i = 0; i< propertyList.size(); i++) words.remove(propertyList.get(i));
+//
+//        Iterator<WordData> itr= propertyList.iterator();
+//
+//        while(itr.hasNext()) {
+//            WordData d = itr.next();
+//            words.remove(d);
+//        }
 
         return correctedList;
 

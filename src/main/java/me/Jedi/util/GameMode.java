@@ -36,18 +36,26 @@ public class GameMode {
 
         //Add any answers that are not in the guesses list already
         for(int i = 0; i < answers.size(); i++) {
-            if(!words.contains(answers.get(i)))  {
-                words.add(answers.get(i));
+            WordData answer = answers.get(i);
+            if(!listContains(words, answer))  {
+                words.add(answer);
             }
         }
 
         this.initialGuess = initialGuess;
     }
 
+    private boolean listContains(List<WordData> list, WordData test) {
+        for(WordData d : list) {
+            if(d.getWord().equals(test.getWord())) return true;
+        }
+
+        return false;
+    }
+
     public String getInitialGuess() {
         return initialGuess;
     }
-
 
     public List<WordData> getWords() {return words;}
 

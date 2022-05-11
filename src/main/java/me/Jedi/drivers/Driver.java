@@ -16,7 +16,7 @@ public abstract class Driver {
         pressEnter();
     }
 
-    public abstract void open();
+    public abstract void open() throws InterruptedException;
 
     public abstract String getInfo(int guess) throws InterruptedException;
 

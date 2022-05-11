@@ -36,7 +36,7 @@ public class LatinDriver extends Driver{
         driver.get(url);
 
         WebElement keyboard = driver.findElement(By.xpath("//*[@id=\"root\"]/div/div/div[3]"));
-        System.out.println(keyboard.getAccessibleName());
+//        System.out.println(keyboard.getAccessibleName());
         List<WebElement> keys = keyboard.findElements(By.tagName("button"));
 
         keyboardMap = new HashMap<>();
@@ -86,9 +86,5 @@ public class LatinDriver extends Driver{
     @Override
     protected void pressEnter() {
         keyboardMap.get(Letter.ENTER).click();
-    }
-
-    public enum Letter {
-        A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z, DELETE, ENTER;
     }
 }
